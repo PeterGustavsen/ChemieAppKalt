@@ -1,10 +1,8 @@
 """
-Prof. Dr. Molar — Character Sprite v2
-White-skinned old chemist, pince-nez glasses (clip-on nose, no ear stems).
-Two frames: IDLE and SPEAKING (mouth open).
-Native size: 32×48 px per frame.
+Prof. Dr. Molar — v4
+Fully hand-placed face. Frizzy thin-strand hair. White pince-nez.
+Sprite: 32×56 px (taller to give head more room).
 """
-
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -12,188 +10,343 @@ from PIL import Image, ImageDraw
 from palette import (
     VOID, SHADOW, DARK_BLUE,
     METAL_DARK, METAL_MID, METAL_LIGHT,
-    BRASS_DARK, BRASS_MID, BRASS_LIGHT,
-    GLASS_DARK, GLASS_MID,
-    ACID_MID, GLASS_MID as GLASS_STAIN,
-    TEXT_WHITE, TEXT_DIM, PURE_WHITE,
-    WOOD_DARK, WOOD_MID,
+    GLASS_DARK, GLASS_MID, GLASS_LIGHT,
+    ACID_MID, TEXT_WHITE, TEXT_DIM, PURE_WHITE,
+    FLOOR_DARK, FLOOR_MID,
 )
 
-SW, SH = 32, 48
+SW, SH = 32, 56
+BG     = (0, 255, 0)
 
-# ── Colour aliases ──────────────────────────────────────────────────────────────
-SKIN        = TEXT_WHITE      # (#e0e4d8) pale/white skin — main face
-SKIN_SHADOW = TEXT_DIM        # (#889888) cheek/chin shadow
-SKIN_HI     = PURE_WHITE      # (#ffffff) forehead glint
-HAIR        = METAL_LIGHT     # (#888c98) wild grey hair
-HAIR_DARK   = METAL_MID       # (#585c68) hair depth
-COAT        = TEXT_WHITE      # (#e0e4d8) lab coat body — same as skin, coat lines differ
-COAT_CREASE = TEXT_DIM        # (#889888) coat shadow / creases
-COAT_DEEP   = METAL_MID       # (#585c68) deep fold shadow
-PINCE_NEZ   = BRASS_MID       # (#a87c28) gold-toned wire frame
-LENS_TINT   = GLASS_DARK      # (#144458) subtle tinted lens
-PUPIL       = SHADOW          # (#141828)
-PANT        = DARK_BLUE       # (#1c243c) trousers
-SHOE        = SHADOW          # (#141828)
-LIP_SHADOW  = METAL_DARK      # (#383840) mouth line / lips
+SKIN      = TEXT_WHITE        # pale/white skin main
+SKIN_SH   = TEXT_DIM          # cheek/jaw shadow
+SKIN_HI   = PURE_WHITE        # lit forehead
+HAIR_A    = METAL_LIGHT       # grey hair, lighter strand
+HAIR_B    = METAL_MID         # grey hair, darker strand
+COAT      = TEXT_WHITE
+COAT_SH   = TEXT_DIM
+COAT_DEEP = METAL_MID
+PANT      = DARK_BLUE
+LENS      = GLASS_DARK        # tinted lens interior
+EYE       = GLASS_MID         # iris
+PUPIL     = VOID
+BROW      = SHADOW
+FRAME     = PURE_WHITE        # pince-nez frame colour
+FRAME_OUT = VOID              # frame outline (so white reads on white skin)
+LIP       = METAL_DARK        # mouth line
+
+
+def px(d, pts, col):
+    for (x, y) in pts:
+        if 0 <= x < SW and 0 <= y < SH:
+            d.point([(x, y)], fill=col)
 
 
 def draw_molar(speaking=False):
-    img = Image.new("RGB", (SW, SH), (0, 255, 0))   # green = chroma key
+    img = Image.new("RGB", (SW, SH), BG)
     d   = ImageDraw.Draw(img)
 
-    # ── SHOES ──────────────────────────────────────────────────────────────────
-    d.rectangle([8,  45, 14, 47], fill=SHOE)
-    d.rectangle([17, 45, 23, 47], fill=SHOE)
-    d.line([8, 45, 14, 45], fill=METAL_MID)    # toe cap glint
+    # ══════════════════════════════════════════════
+    # HEAD  (x 6–25, y 4–26)   20px wide × 23px tall
+    # ══════════════════════════════════════════════
 
-    # ── TROUSERS ───────────────────────────────────────────────────────────────
-    d.rectangle([11, 38, 14, 45], fill=PANT)
-    d.rectangle([17, 38, 20, 45], fill=PANT)
-    d.line([11, 38, 20, 38], fill=COAT_DEEP)   # belt shadow
-    d.line([15, 38, 15, 44], fill=SHADOW)      # trouser crease
+    # ── Base head fill (ellipse-ish, then overdrawn) ──────────────────────────
+    # Row by row so we can control exact shape:
+    # y4  : ...##############...
+    # y5  : ..################..
+    # y6  : .##################.
+    # y7-17: #################### (full width)
+    # y18 : .##################.
+    # y19 : ..################..
+    # y20 : ...##############...
+    # y21 : ....############....
+    # y22 : .....##########.....
+    # y23 : ......########......
+    # y24 : .......######.......
+    # y25 : ........####........
+    # y26 : .........##.........  (chin point)
 
-    # ── COAT BODY ──────────────────────────────────────────────────────────────
-    # Main torso — slightly narrowed at top (hunched shoulders)
-    d.rectangle([9,  21, 22, 38], fill=COAT)
-    # Left edge shadow (coat depth)
-    d.line([9, 21, 9, 38],  fill=COAT_CREASE)
-    # Right edge shadow
-    d.line([22, 21, 22, 38], fill=COAT_CREASE)
-    # Bottom hem darker
-    d.line([9, 37, 22, 37], fill=COAT_CREASE)
-    d.line([9, 38, 22, 38], fill=COAT_CREASE)
+    rows = {
+         4: (9,  22),
+         5: (8,  23),
+         6: (7,  24),
+         7: (7,  24),  8: (7, 24),  9: (7, 24), 10: (7, 24),
+        11: (7,  24), 12: (7, 24), 13: (7, 24), 14: (7, 24),
+        15: (7,  24), 16: (7, 24), 17: (7, 24),
+        18: (8,  23),
+        19: (9,  22),
+        20: (10, 21),
+        21: (11, 20),
+        22: (12, 19),
+        23: (13, 18),
+        24: (14, 17),
+        25: (14, 17),
+        26: (15, 16),  # chin tip
+    }
+    for y, (x0, x1) in rows.items():
+        for x in range(x0, x1+1):
+            img.putpixel((x, y), SKIN)
 
-    # V-neck / lapels
-    d.polygon([(13, 21), (15, 27), (12, 27)], fill=COAT_CREASE)
-    d.polygon([(18, 21), (16, 27), (19, 27)], fill=COAT_CREASE)
+    # ── Forehead shading ──────────────────────────────────────────────────────
+    # Top forehead — bright (strip light above)
+    px(d, [(x, 5) for x in range(9,22)], SKIN_HI)
+    px(d, [(x, 6) for x in range(10,21)], SKIN_HI)
+    px(d, [(x, 7) for x in range(11,20)], SKIN_HI)
+    px(d, [(13,5),(14,5),(15,5),(13,6),(14,6),(15,6)], PURE_WHITE)  # hotspot
 
-    # Breast pocket
-    d.rectangle([10, 24, 13, 28], fill=COAT_CREASE)
-    d.line([10, 24, 13, 24], fill=COAT)
+    # Right-side face shadow (away from light)
+    for y in range(7, 27):
+        r = rows.get(y)
+        if r:
+            px(d, [(r[1], y), (r[1]-1, y)], SKIN_SH)
 
-    # Chemical stain (personality detail)
-    d.point([(16, 29), (17, 29), (16, 30)], fill=ACID_MID)
-    d.point([(17, 30)], fill=GLASS_DARK)
+    # Cheekbone catch-light
+    px(d, [(9,17),(9,18),(10,18)], SKIN_HI)
 
-    # ── ARMS ───────────────────────────────────────────────────────────────────
-    # Left arm (drooping slightly)
-    d.rectangle([5, 22, 8, 36], fill=COAT)
-    d.line([5, 22, 5, 36], fill=COAT_CREASE)
-    # Left hand
-    d.rectangle([4, 34, 8, 38], fill=SKIN)
-    d.line([4, 34, 8, 34], fill=SKIN_HI)
-    d.point([(4, 37), (8, 37)], fill=SKIN_SHADOW)  # knuckle hints
+    # ── FRIZZY HAIR — individual thin strands ─────────────────────────────────
+    # Each strand is 1 px wide; scattered, some overlapping the head outline.
+    # Strategy: define strand paths as small lists of (x,y) then draw them.
 
-    # Right arm
-    d.rectangle([23, 22, 26, 34], fill=COAT)
-    d.line([26, 22, 26, 34], fill=COAT_CREASE)
-    # Right hand
-    d.rectangle([23, 32, 27, 36], fill=SKIN)
-    d.line([23, 32, 27, 32], fill=SKIN_HI)
+    strands = [
+        # Left side frizz (messy outward)
+        [(5,8),(4,7),(4,6),(3,6)],
+        [(6,7),(5,6),(4,5)],
+        [(6,6),(5,5),(5,4)],
+        [(7,5),(6,4),(5,3),(5,2)],
+        [(7,4),(6,3),(7,2)],
+        [(8,5),(7,4),(6,3)],
+        [(8,4),(8,3),(7,2),(8,2)],
+        # Top frizz (upward chaos)
+        [(9,4),(8,3),(8,2),(9,1)],
+        [(10,4),(10,3),(9,2),(9,1)],
+        [(11,4),(11,3),(10,2),(11,1),(10,0)],
+        [(12,4),(12,3),(11,2),(12,1)],
+        [(13,3),(13,2),(14,1),(13,0)],
+        [(14,3),(14,2),(15,1),(15,0)],
+        [(15,3),(15,2),(14,1)],
+        [(16,4),(16,3),(17,2),(16,1)],
+        [(17,4),(17,3),(18,2),(17,1),(18,0)],
+        [(18,4),(18,3),(19,2),(18,1)],
+        [(19,4),(19,3),(19,2),(20,1)],
+        [(20,4),(20,3),(20,2),(21,2)],
+        # Right side frizz
+        [(22,5),(23,4),(24,3)],
+        [(23,6),(24,5),(25,4),(25,3)],
+        [(24,6),(25,5),(26,5),(26,4)],
+        [(24,7),(25,7),(26,6),(27,6)],
+        [(23,8),(24,8),(25,7)],
+        [(22,9),(23,9),(24,8)],
+        # Side hair down the temples
+        [(6,9),(5,10),(5,11),(6,12)],
+        [(6,10),(5,11),(5,12),(6,13)],
+        [(5,13),(5,14),(6,14)],
+        [(25,9),(26,10),(26,11),(25,12)],
+        [(26,12),(26,13),(25,13)],
+        [(26,14),(25,14),(25,15)],
+    ]
 
-    # ── NECK ───────────────────────────────────────────────────────────────────
-    d.rectangle([13, 17, 18, 21], fill=SKIN)
-    d.line([13, 17, 18, 17], fill=SKIN_HI)
-    d.line([13, 17, 13, 21], fill=SKIN_SHADOW)  # neck shadow left
+    # Alternate strand colors for thin, varied look
+    for i, strand in enumerate(strands):
+        col = HAIR_A if i % 3 != 2 else HAIR_B
+        px(d, strand, col)
+        # Occasional single PURE_WHITE pixel = silver highlight
+        if i % 5 == 0 and strand:
+            mid = strand[len(strand)//2]
+            px(d, [mid], PURE_WHITE)
 
-    # ── HEAD ───────────────────────────────────────────────────────────────────
-    # Head: slightly wide, old man jowly shape
-    d.ellipse([7, 5, 24, 20], fill=SKIN)
+    # ── EYEBROWS — thick, dishevelled ─────────────────────────────────────────
+    # Left brow (x 8–13, y 9–10), inner end slightly lower (furrowed)
+    px(d, [(8,10),(9,10),(10,10),(11,10),(12,10),(13,10)], BROW)
+    px(d, [(8,11),(9,11),(10,11)], BROW)          # lower inner thickening
+    px(d, [(13,9),(12,9)], HAIR_B)                # outer brow lighter tip
+    # Stray brow hairs
+    px(d, [(7,10),(7,11)], HAIR_B)
+    px(d, [(14,9)], HAIR_B)
 
-    # Forehead highlight (catching neon strip light)
-    d.ellipse([10, 6, 18, 11], fill=SKIN_HI)
-    d.point([(13, 6), (14, 6)], fill=PURE_WHITE)  # bright glint
+    # Right brow (x 18–24, y 9–10)
+    px(d, [(18,10),(19,10),(20,10),(21,10),(22,10),(23,10)], BROW)
+    px(d, [(21,11),(22,11),(23,11)], BROW)
+    px(d, [(17,10),(17,9)], HAIR_B)               # stray outer
+    px(d, [(24,9),(25,9)], HAIR_B)
 
-    # Cheek / chin shadow (right side = shadow side)
-    d.ellipse([17, 14, 24, 21], fill=SKIN_SHADOW)
-    # Jaw/chin
-    d.ellipse([11, 17, 21, 22], fill=SKIN_SHADOW)
-    d.ellipse([12, 17, 20, 21], fill=SKIN)
+    # ── EYE SOCKETS — subtle recess ───────────────────────────────────────────
+    px(d, [(9,11),(10,11),(11,11),(12,11),(13,11)], SKIN_SH)     # left recess
+    px(d, [(18,11),(19,11),(20,11),(21,11),(22,11)], SKIN_SH)    # right recess
 
-    # ── WILD GREY HAIR ─────────────────────────────────────────────────────────
-    # Hair sits above and around the head, chaotic tufts
-    # Draw hair LAST (over head ellipse edges) so it looks natural
+    # ── PINCE-NEZ (white oval frames, dark outline, no ear stems) ─────────────
+    #
+    # Left lens: x 8–13, y 11–15  (6×5px oval)
+    # Outer outline (VOID — makes white frame visible on skin)
+    # Frame ring (PURE_WHITE)
+    # Lens interior (GLASS_DARK)
+    # No arms going to the sides of the head.
 
-    # Back/crown mass
-    d.ellipse([6, 2, 25, 10], fill=HAIR)
-    # Wild tufts pointing up
-    d.ellipse([7,  0, 13,  7], fill=HAIR)     # left peak
-    d.ellipse([18, 0, 25,  7], fill=HAIR)     # right peak
-    d.ellipse([11, -1, 17, 6], fill=HAIR)     # centre peak
-    # Stray strands (individual pixels)
-    for px, py in [(8,0),(7,1),(6,2),(24,1),(25,2),(13,-1),(12,0),(19,0),(20,-1)]:
-        if 0 <= px < SW and 0 <= py < SH:
-            d.point([(px, py)], fill=HAIR)
-    # Hair depth / shadow within hair mass
-    d.ellipse([9, 3, 22, 9], fill=HAIR_DARK)
-    d.ellipse([10, 4, 21, 8], fill=HAIR)      # lighter centre back on top
-    # Side tufts (sideburns area)
-    d.rectangle([5, 9, 8, 16], fill=HAIR)
-    d.rectangle([23, 9, 26, 16], fill=HAIR)
-    d.line([5, 9, 5, 16], fill=HAIR_DARK)
+    # Left lens outline
+    px(d, [(9,11),(10,11),(11,11),(12,11),            # top
+           (8,12),(8,13),(8,14),                       # left
+           (13,12),(13,13),(13,14),                    # right
+           (9,15),(10,15),(11,15),(12,15)],            # bottom
+       FRAME_OUT)
+    # Left lens frame (white ring inside outline)
+    px(d, [(9,11),(10,11),(11,11),(12,11),
+           (8,12),(13,12),(8,13),(13,13),(8,14),(13,14),
+           (9,15),(10,15),(11,15),(12,15)],
+       FRAME)
+    # Left lens interior
+    px(d, [(9,12),(10,12),(11,12),(12,12),
+           (9,13),(10,13),(11,13),(12,13),
+           (9,14),(10,14),(11,14),(12,14)],
+       LENS)
+    # Left lens glint
+    px(d, [(9,12)], PURE_WHITE)
 
-    # ── EYEBROWS (bushy, unkempt) ──────────────────────────────────────────────
-    # Left brow — thick, slightly furrowed
-    d.line([9, 10, 14, 10], fill=HAIR_DARK)
-    d.line([9, 11, 13, 11], fill=SHADOW)
-    d.point([(9, 10)], fill=SHADOW)   # inner frown
-    # Right brow
-    d.line([17, 10, 22, 10], fill=HAIR_DARK)
-    d.line([18, 11, 22, 11], fill=SHADOW)
-    d.point([(22, 10)], fill=SHADOW)
+    # Right lens: x 17–22, y 11–15
+    px(d, [(18,11),(19,11),(20,11),(21,11),
+           (17,12),(17,13),(17,14),
+           (22,12),(22,13),(22,14),
+           (18,15),(19,15),(20,15),(21,15)],
+       FRAME_OUT)
+    px(d, [(18,11),(19,11),(20,11),(21,11),
+           (17,12),(22,12),(17,13),(22,13),(17,14),(22,14),
+           (18,15),(19,15),(20,15),(21,15)],
+       FRAME)
+    px(d, [(18,12),(19,12),(20,12),(21,12),
+           (18,13),(19,13),(20,13),(21,13),
+           (18,14),(19,14),(20,14),(21,14)],
+       LENS)
+    px(d, [(18,12)], PURE_WHITE)
 
-    # ── NOSE ───────────────────────────────────────────────────────────────────
-    # Bulbous old-man nose, centre of face
-    d.ellipse([13, 13, 18, 17], fill=SKIN_SHADOW)  # nose body
-    d.ellipse([13, 13, 17, 16], fill=SKIN)          # lit side
-    d.point([(14, 16), (17, 16)], fill=SHADOW)      # nostrils
+    # Nose bridge clip (white bar over nose, NO ear stems)
+    px(d, [(14,12),(14,13),(15,13),(16,13),(16,12)], FRAME)
+    px(d, [(14,11),(15,11),(16,11)], FRAME_OUT)   # top outline of bridge clip
 
-    # ── PINCE-NEZ (clips ONTO nose, no ear stems) ──────────────────────────────
-    # The lenses rest on the nose bridge, no arms going to ears.
-    # Left lens: oval, sitting on left side of nose
-    d.ellipse([9,  12, 14, 16], fill=LENS_TINT)    # left lens tint
-    d.ellipse([9,  12, 14, 16], outline=PINCE_NEZ)  # gold frame
-    # Right lens: oval, sitting on right side of nose
-    d.ellipse([16, 12, 21, 16], fill=LENS_TINT)    # right lens tint
-    d.ellipse([16, 12, 21, 16], outline=PINCE_NEZ)  # gold frame
-    # Bridge clip — tiny piece sitting ON the nose (no ear stems!)
-    d.line([14, 13, 16, 13], fill=PINCE_NEZ)        # bridge across nose
-    d.point([(15, 14)], fill=PINCE_NEZ)             # centre clip
-    # Lens highlight (light catches glass)
-    d.point([(10, 13)], fill=SKIN_HI)
-    d.point([(17, 13)], fill=SKIN_HI)
+    # ── EYES behind lenses ────────────────────────────────────────────────────
+    px(d, [(10,13),(11,13)], EYE)
+    px(d, [(19,13),(20,13)], EYE)
+    px(d, [(10,13)], PUPIL)
+    px(d, [(19,13)], PUPIL)
+    # Eye whites
+    px(d, [(11,12),(12,12)], PURE_WHITE)
+    px(d, [(20,12),(21,12)], PURE_WHITE)
 
-    # ── EYES (behind lenses) ───────────────────────────────────────────────────
-    d.point([(11, 14)], fill=GLASS_MID)     # iris left
-    d.point([(18, 14)], fill=GLASS_MID)     # iris right
-    d.point([(11, 14)], fill=PUPIL)         # pupil (overwrite centre)
-    d.point([(18, 14)], fill=PUPIL)
+    # ── NOSE ──────────────────────────────────────────────────────────────────
+    # Nose bridge (subtle shadow going down from between glasses)
+    px(d, [(15,15),(15,16),(14,17),(15,17),(16,17)], SKIN_SH)
+    # Nose tip
+    px(d, [(13,18),(14,18),(15,18),(16,18),(17,18)], SKIN_SH)
+    px(d, [(14,17),(15,17),(16,17)], SKIN_SH)
+    # Lit top of nose tip
+    px(d, [(14,16),(15,16)], SKIN_HI)
+    # Nostrils — two clear dark ovals
+    px(d, [(12,18),(13,18),(12,19)], VOID)   # left nostril
+    px(d, [(17,18),(18,18),(18,19)], VOID)   # right nostril
+    # Under-nose shadow
+    px(d, [(13,19),(14,19),(15,19),(16,19),(17,19)], SKIN_SH)
 
-    # ── MOUTH ──────────────────────────────────────────────────────────────────
+    # ── MOUSTACHE (wispy — matching hair style) ────────────────────────────────
+    px(d, [(11,19),(12,19)], HAIR_B)
+    px(d, [(10,20),(11,20),(12,20)], HAIR_B)
+    px(d, [(18,19),(19,19)], HAIR_B)
+    px(d, [(18,20),(19,20),(20,20)], HAIR_B)
+    # Thin stray hairs
+    px(d, [(10,19)], HAIR_A)
+    px(d, [(20,19)], HAIR_A)
+
+    # ── MOUTH ─────────────────────────────────────────────────────────────────
     if speaking:
-        # Open mouth — excited/explaining
-        d.ellipse([12, 17, 19, 21], fill=SHADOW)           # mouth cavity
-        d.line([12, 18, 19, 18], fill=VOID)                # upper lip line
-        # Teeth row (top)
-        for tx in range(13, 19):
-            d.point([(tx, 18)], fill=PURE_WHITE)
-        d.point([(12, 18), (19, 18)], fill=SKIN_SHADOW)    # corners
+        # Open — excited O
+        px(d, [(12,21),(13,21),(14,21),(15,21),(16,21),(17,21),(18,21)], LIP)
+        px(d, [(11,22),(19,22)], LIP)
+        px(d, [(12,22),(13,22),(14,22),(15,22),(16,22),(17,22),(18,22)], GLASS_DARK)
+        # Teeth top row
+        px(d, [(12,21),(13,21),(14,21),(15,21),(16,21),(17,21),(18,21)], PURE_WHITE)
+        # Mouth corners
+        px(d, [(11,21),(19,21)], SKIN_SH)
+        # Bottom lip line
+        px(d, [(12,23),(13,23),(14,23),(15,23),(16,23),(17,23),(18,23)], LIP)
+        # Chin below mouth
+        px(d, [(13,24),(14,24),(15,24),(16,24),(17,24)], SKIN)
     else:
-        # Closed — slight knowing smirk (left side raised)
-        d.line([12, 18, 19, 18], fill=LIP_SHADOW)
-        d.point([(12, 19)], fill=SKIN_SHADOW)   # left corner down
-        d.point([(19, 17)], fill=SKIN_HI)        # right corner up (smirk)
+        # Closed — wry off-centre smirk
+        px(d, [(11,21),(12,21),(13,21),(14,21),(15,21),
+               (16,21),(17,21),(18,21),(19,21)], LIP)
+        # Smirk: left corner down
+        px(d, [(11,22),(12,22)], SKIN_SH)
+        # Right corner raised + slight upturn
+        px(d, [(18,20),(19,20)], SKIN_HI)
+        # Lower lip plump hint
+        px(d, [(13,22),(14,22),(15,22),(16,22),(17,22)], SKIN_SH)
 
-    # ── SELECTIVE OUTLINE ──────────────────────────────────────────────────────
-    # Head outline (bottom + sides only — top edge is hair)
-    d.arc([7, 5, 24, 20], start=30, end=150, fill=VOID)   # bottom arc
-    d.line([7, 10, 7, 17], fill=VOID)    # left side
-    d.line([24, 10, 24, 17], fill=VOID)  # right side
-    # Body outline
-    d.line([5, 22, 5, 36], fill=VOID)   # left
-    d.line([26, 22, 26, 34], fill=VOID) # right
-    d.line([9, 38, 22, 38], fill=VOID)  # coat bottom
+    # ── WRINKLES / AGE LINES ──────────────────────────────────────────────────
+    # Crow's feet (right eye — shadow side)
+    px(d, [(23,13),(24,12),(25,12)], SKIN_SH)
+    px(d, [(23,15),(24,15),(25,16)], SKIN_SH)
+    # Nasolabial fold (cheek-to-mouth lines)
+    px(d, [(10,19),(10,20),(11,21)], SKIN_SH)
+    px(d, [(20,19),(20,20),(19,21)], SKIN_SH)
+    # Forehead line (faint)
+    px(d, [(10,8),(11,8),(12,8),(13,8)], SKIN_SH)
+
+    # ── HEAD OUTLINE ──────────────────────────────────────────────────────────
+    for y, (x0, x1) in rows.items():
+        px(d, [(x0-1, y), (x1+1, y)], VOID)   # sides
+    # Bottom (chin)
+    px(d, [(14,27),(15,27),(16,27)], VOID)
+
+    # ══════════════════════════════════════════════
+    # NECK (x 13–18, y 27–31)
+    # ══════════════════════════════════════════════
+    d.rectangle([13, 27, 18, 31], fill=SKIN)
+    px(d, [(13,27),(13,28),(13,29),(13,30)], SKIN_SH)
+    px(d, [(14,27),(15,27),(16,27),(17,27)], SKIN_HI)
+
+    # ══════════════════════════════════════════════
+    # COAT BODY (x 8–23, y 31–47)
+    # ══════════════════════════════════════════════
+    d.rectangle([8, 31, 23, 47], fill=COAT)
+    # Lapels
+    for i, xi in enumerate(range(13, 8, -1)):
+        d.line([xi, 31+i, xi, 33+i], fill=COAT_SH)
+    for i, xi in enumerate(range(18, 23)):
+        d.line([xi, 31+i, xi, 33+i], fill=COAT_SH)
+    # Side creases
+    d.line([8, 31, 8, 47], fill=COAT_SH)
+    d.line([23, 31, 23, 47], fill=COAT_SH)
+    d.line([8, 47, 23, 47], fill=COAT_DEEP)
+    # Breast pocket
+    d.rectangle([9, 35, 12, 40], fill=COAT_SH)
+    d.line([9, 35, 12, 35], fill=COAT)
+    # Stain
+    px(d, [(17,39),(18,39),(17,40)], ACID_MID)
+    px(d, [(18,40)], GLASS_DARK)
+
+    # ── ARMS ──────────────────────────────────────────────────────────────────
+    d.rectangle([3, 32, 7, 46], fill=COAT)
+    d.line([3, 32, 3, 46], fill=COAT_SH)
+    # Left hand
+    d.rectangle([2, 44, 7, 49], fill=SKIN)
+    px(d, [(2,44),(3,44),(4,44)], SKIN_HI)
+
+    d.rectangle([24, 32, 28, 44], fill=COAT)
+    d.line([28, 32, 28, 44], fill=COAT_SH)
+    # Right hand
+    d.rectangle([24, 42, 29, 47], fill=SKIN)
+    px(d, [(24,42),(25,42),(26,42)], SKIN_HI)
+
+    # ── TROUSERS ──────────────────────────────────────────────────────────────
+    d.rectangle([9,  48, 14, 54], fill=PANT)
+    d.rectangle([17, 48, 22, 54], fill=PANT)
+    px(d, [(15,48),(15,49),(15,50),(15,51),(15,52)], SHADOW)  # crease
+
+    # ── SHOES ─────────────────────────────────────────────────────────────────
+    d.rectangle([7,  54, 15, 55], fill=VOID)
+    d.rectangle([16, 54, 24, 55], fill=VOID)
+    px(d, [(7,54),(8,54),(9,54)], METAL_MID)
+
+    # ── BODY OUTLINE ──────────────────────────────────────────────────────────
+    d.line([3, 32, 3, 46], fill=VOID)
+    d.line([28, 32, 28, 44], fill=VOID)
+    d.line([8, 47, 23, 47], fill=VOID)
 
     return img
 
@@ -206,22 +359,22 @@ def make_sprite_sheet():
     idle.save("../../assets/scenes/molar_idle.png")
     speak.save("../../assets/scenes/molar_speak.png")
 
-    # Side-by-side sheet ×4
-    sheet = Image.new("RGB", (SW*2, SH), (0, 255, 0))
+    # ×4 sheet side by side
+    sheet   = Image.new("RGB", (SW*2, SH), BG)
     sheet.paste(idle,  (0,  0))
     sheet.paste(speak, (SW, 0))
     sheet_x4 = sheet.resize((SW*8, SH*4), Image.NEAREST)
     sheet_x4.save("../../assets/scenes/molar_sheet_x4.png")
 
-    # Preview on grey BG
+    # Preview on dark teal BG (so white is clearly visible)
     preview = sheet_x4.copy()
-    px = preview.load()
+    px_data = preview.load()
     for y in range(preview.height):
         for x in range(preview.width):
-            if px[x, y] == (0, 255, 0):
-                px[x, y] = (160, 168, 160)
+            if px_data[x, y] == (0, 255, 0):
+                px_data[x, y] = (44, 84, 98)   # WALL_MID-ish
     preview.save("../../assets/scenes/molar_preview_x4.png")
-    print("Saved molar_idle, molar_speak, sheet_x4, preview_x4")
+    print("Done — molar v4 sprites generated.")
 
 
 if __name__ == "__main__":
