@@ -6,7 +6,7 @@
  * Flow: interact → code panel lights up → go to terminal → enter code
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, Image,
 } from 'react-native';
@@ -18,6 +18,29 @@ const SCENE_IMAGES = [
   require('../../assets/scenes/scene_05_apparatus.png'),
   require('../../assets/scenes/scene_04_periodic.png'),
 ];
+
+// ─── Cooldown hook — 15s penalty after wrong answer ──────────────────────────
+
+const COOLDOWN_SEC = 15;
+
+function useCooldown() {
+  const [remaining, setRemaining] = useState(0);
+  const timerRef = useRef(null);
+
+  const trigger = useCallback(() => {
+    setRemaining(COOLDOWN_SEC);
+    timerRef.current = setInterval(() => {
+      setRemaining(r => {
+        if (r <= 1) { clearInterval(timerRef.current); return 0; }
+        return r - 1;
+      });
+    }, 1000);
+  }, []);
+
+  useEffect(() => () => clearInterval(timerRef.current), []);
+
+  return { remaining, trigger, locked: remaining > 0 };
+}
 
 // ─── Shared sub-components ───────────────────────────────────────────────────
 
@@ -48,17 +71,24 @@ function SectionTitle({ children }) {
 function Puzzle1_pH({ onSolve }) {
   const [ph, setPh] = useState(7);
   const [checked, setChecked] = useState(false);
+  const { remaining, trigger, locked } = useCooldown();
 
   const correct = ph === 3;
 
   const step = (dir) => {
+    if (locked) return;
     setPh(v => Math.min(14, Math.max(1, v + dir)));
     setChecked(false);
   };
 
   const check = () => {
+    if (locked) return;
     setChecked(true);
-    if (correct) onSolve();
+    if (correct) {
+      onSolve();
+    } else {
+      trigger();
+    }
   };
 
   // colour of the indicator liquid changes with pH
@@ -106,15 +136,21 @@ function Puzzle1_pH({ onSolve }) {
       </View>
 
       <TouchableOpacity
-        style={[styles.checkBtn, correct && styles.checkBtnCorrect]}
+        style={[styles.checkBtn, correct && styles.checkBtnCorrect, locked && styles.checkBtnLocked]}
         onPress={check}
+        disabled={locked}
       >
-        <Text style={styles.checkBtnText}>BESTÄTIGEN</Text>
+        <Text style={styles.checkBtnText}>
+          {locked ? `GESPERRT — ${remaining}s` : 'BESTÄTIGEN'}
+        </Text>
       </TouchableOpacity>
 
-      {checked && !correct && (
-        <Text style={styles.wrongHint}>
-          Nicht korrekt — prüfe die Formel.
+      {checked && !correct && !locked && (
+        <Text style={styles.wrongHint}>Nicht korrekt — prüfe die Formel.</Text>
+      )}
+      {locked && (
+        <Text style={styles.cooldownHint}>
+          ⚠ Falsche Eingabe — {remaining}s Sperre aktiv
         </Text>
       )}
     </View>
@@ -127,21 +163,28 @@ function Puzzle1_pH({ onSolve }) {
 
 function Puzzle2_Oxidation({ onSolve }) {
   const STATES = [-3, -1, 0, +1, +2, +3, +4, +5, +6, +7];
-  const [idx, setIdx] = useState(2); // starts at 0
+  const [idx, setIdx] = useState(2);
   const [checked, setChecked] = useState(false);
+  const { remaining, trigger, locked } = useCooldown();
 
   const val = STATES[idx];
   const sum = 1 + val + 4 * (-2);   // K + Mn + 4O
   const correct = val === 7;
 
   const spin = (dir) => {
+    if (locked) return;
     setIdx(i => Math.min(STATES.length - 1, Math.max(0, i + dir)));
     setChecked(false);
   };
 
   const check = () => {
+    if (locked) return;
     setChecked(true);
-    if (correct) onSolve();
+    if (correct) {
+      onSolve();
+    } else {
+      trigger();
+    }
   };
 
   return (
@@ -193,14 +236,22 @@ function Puzzle2_Oxidation({ onSolve }) {
       </View>
 
       <TouchableOpacity
-        style={[styles.checkBtn, correct && styles.checkBtnCorrect]}
+        style={[styles.checkBtn, correct && styles.checkBtnCorrect, locked && styles.checkBtnLocked]}
         onPress={check}
+        disabled={locked}
       >
-        <Text style={styles.checkBtnText}>SCHLOSS PRÜFEN</Text>
+        <Text style={styles.checkBtnText}>
+          {locked ? `GESPERRT — ${remaining}s` : 'SCHLOSS PRÜFEN'}
+        </Text>
       </TouchableOpacity>
 
-      {checked && !correct && (
+      {checked && !correct && !locked && (
         <Text style={styles.wrongHint}>Summe ≠ 0 — drehe weiter.</Text>
+      )}
+      {locked && (
+        <Text style={styles.cooldownHint}>
+          ⚠ Falsche Oxidationszahl — {remaining}s Sperre aktiv
+        </Text>
       )}
     </View>
   );
@@ -688,8 +739,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   checkBtnCorrect: { borderColor: '#48bb78' },
+  checkBtnLocked:  { borderColor: '#9b2c2c', opacity: 0.6 },
   checkBtnText: { color: COLORS.text, fontSize: 11, letterSpacing: 1 },
-  wrongHint: { color: '#e53e3e', fontSize: 11, textAlign: 'center', marginTop: 6 },
+  wrongHint:    { color: '#e53e3e', fontSize: 11, textAlign: 'center', marginTop: 6 },
+  cooldownHint: { color: '#e53e3e', fontSize: 11, textAlign: 'center', marginTop: 6, letterSpacing: 1 },
 
   // Code panel
   codePanel: {

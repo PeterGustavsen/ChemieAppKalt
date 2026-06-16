@@ -1,303 +1,327 @@
 /*
- * PC-TERMINAL SCREEN (Zentrale)
- * Hier werden die Codes eingegeben.
- * Retro-CRT-Look mit gruenem Phosphor-Text.
+ * PC-TERMINAL SCREEN — SNES pixel-art retro style
+ * Code entry happens here. Visual style matches the lab aesthetic.
  */
 
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  ScrollView, StyleSheet,
+  View, Text, TouchableOpacity, TextInput,
+  ScrollView, StyleSheet, Image,
 } from 'react-native';
-import { LabTerminal } from '../components/PixelLab';
 import { COLORS } from '../config/theme';
 import { PUZZLES } from '../config/puzzles';
 import { Sound } from '../components/SoundManager';
 
+const SCENE = require('../../assets/scenes/scene_01_lab_hub.png');
+
 export default function TerminalScreen({ currentPuzzle, solved, onCodeCorrect }) {
-  const [input, setInput] = useState('');
-  const [feedback, setFeedback] = useState(null); // { type: 'ok'|'err', text }
+  const [input, setInput]       = useState('');
+  const [feedback, setFeedback] = useState(null); // { ok: bool, text }
 
   const handleSubmit = () => {
     if (!input.trim() || currentPuzzle >= 4) return;
 
     if (input.trim() === PUZZLES[currentPuzzle].code) {
-      // Richtig!
       Sound.success();
-      setFeedback({
-        type: 'ok',
-        text: `[OK] Code ${currentPuzzle + 1} akzeptiert! "${PUZZLES[currentPuzzle].title}" entsperrt.`,
-      });
+      setFeedback({ ok: true, text: `CODE ${currentPuzzle + 1} AKZEPTIERT` });
       setInput('');
       onCodeCorrect(currentPuzzle);
     } else {
-      // Falsch
       Sound.error();
-      setFeedback({
-        type: 'err',
-        text: '[FEHLER] Falscher Code. Zugang verweigert.',
-      });
+      setFeedback({ ok: false, text: 'ZUGANG VERWEIGERT' });
       setInput('');
     }
   };
 
+  const allDone = currentPuzzle >= 4;
+
   return (
     <View style={styles.container}>
-      {/* Labor-Szene: PC */}
-      <LabTerminal />
+      {/* ── PIXEL-ART SCENE BANNER ── */}
+      <View style={styles.sceneBanner}>
+        <Image source={SCENE} style={styles.sceneImg} resizeMode="cover" />
+        {/* scanline overlay */}
+        <View style={styles.scanlines} pointerEvents="none" />
+        {/* title plate */}
+        <View style={styles.titlePlate}>
+          <Text style={styles.titlePlateText}>SICHERHEITSTERMINAL v7</Text>
+        </View>
+      </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {/* CRT Terminal Window */}
-        <View style={styles.crt}>
-          {/* Titlebar */}
-          <View style={styles.titlebar}>
-            <View style={[styles.dot, { backgroundColor: '#f87171' }]} />
-            <View style={[styles.dot, { backgroundColor: '#fbbf24' }]} />
-            <View style={[styles.dot, { backgroundColor: '#4ade80' }]} />
-            <Text style={styles.titleText}>molar_security_v7.exe</Text>
+
+        {/* ── CODE STATUS PANEL ── */}
+        <View style={styles.statusPanel}>
+          <Text style={styles.statusHeader}>// SICHERHEITSCODES //</Text>
+          <View style={styles.codeSlots}>
+            {PUZZLES.map((p, i) => (
+              <View key={i} style={[styles.codeSlot, solved[i] && styles.codeSlotDone]}>
+                <Text style={[styles.codeSlotNum, solved[i] && styles.codeSlotNumDone]}>
+                  {solved[i] ? p.code : '?'}
+                </Text>
+                <Text style={[styles.codeSlotLabel, solved[i] && styles.codeSlotLabelDone]}>
+                  {p.navLabel.toUpperCase()}
+                </Text>
+                {solved[i] && <View style={styles.codeLedOn} />}
+              </View>
+            ))}
           </View>
+        </View>
 
-          {/* Terminal Body */}
-          <View style={styles.body}>
-            <Text style={styles.line}>
-              <Text style={styles.prompt}>[SYSTEM]</Text> Sicherheitssystem aktiv.
-            </Text>
-            <Text style={styles.line}>
-              <Text style={styles.err}>[ALARM]</Text> Alle Ausgaenge verriegelt.
-            </Text>
-            <Text style={styles.line}>
-              <Text style={styles.info}>[INFO]</Text> 4 Sicherheitscodes erforderlich.
-            </Text>
-            <Text style={styles.line}>
-              <Text style={styles.prompt}>[STATUS]</Text> Codes: {currentPuzzle}/4
-            </Text>
-
-            {/* Fortschritt */}
-            <View style={styles.progressWrap}>
-              {PUZZLES.map((p, i) => (
-                <View key={i} style={styles.progressItem}>
-                  <View style={[
-                    styles.progressDot,
-                    solved[i] && styles.progressDotSolved,
-                  ]} />
-                  <Text style={[
-                    styles.progressLabel,
-                    solved[i] && styles.progressLabelSolved,
-                  ]}>
-                    {p.navLabel}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Aktuelles Raetsel */}
-            {currentPuzzle < 4 ? (
-              <View style={styles.currentBox}>
-                <Text style={styles.currentText}>
-                  Aktuell: {PUZZLES[currentPuzzle].title} — {PUZZLES[currentPuzzle].subtitle}
+        {/* ── PHOSPHOR DISPLAY ── */}
+        <View style={styles.crtDisplay}>
+          <View style={styles.crtInner}>
+            {allDone ? (
+              <>
+                <Text style={[styles.crtLine, { color: COLORS.green }]}>
+                  {'>>> ALLE CODES VERIFIZIERT <<<'}
                 </Text>
-              </View>
+                <Text style={[styles.crtLine, { color: COLORS.green }]}>
+                  SICHERHEITSSYSTEM DEAKTIVIERT
+                </Text>
+              </>
             ) : (
-              <View style={[styles.currentBox, { borderLeftColor: COLORS.green }]}>
-                <Text style={[styles.currentText, { color: COLORS.green }]}>
-                  Alle Codes eingegeben. System deaktiviert...
+              <>
+                <Text style={styles.crtLine}>
+                  {`[STATUS] ${currentPuzzle}/4 Codes verifiziert`}
                 </Text>
-              </View>
+                <Text style={styles.crtLine}>
+                  {`[WARTE] Code ${currentPuzzle + 1}: ${PUZZLES[currentPuzzle]?.title.toUpperCase()}`}
+                </Text>
+              </>
             )}
 
-            {/* Eingabe */}
-            {currentPuzzle < 4 && (
-              <View style={styles.inputArea}>
-                <Text style={styles.line}>
-                  <Text style={styles.prompt}>[EINGABE]</Text> Code:
-                </Text>
-                <View style={styles.inputRow}>
-                  <Text style={styles.promptSign}>&gt;</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={input}
-                    onChangeText={setInput}
-                    onSubmitEditing={handleSubmit}
-                    placeholder="Code eingeben..."
-                    placeholderTextColor="rgba(255,255,255,0.15)"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="send"
-                  />
-                  <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-                    <Text style={styles.submitText}>SENDEN</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {/* Feedback */}
             {feedback && (
-              <View style={[
-                styles.feedback,
-                feedback.type === 'ok' ? styles.feedbackOk : styles.feedbackErr,
-              ]}>
-                <Text style={[
-                  styles.feedbackText,
-                  { color: feedback.type === 'ok' ? COLORS.green : '#f87171' },
-                ]}>
-                  {feedback.text}
-                </Text>
-              </View>
+              <Text style={[styles.crtLine, feedback.ok ? styles.crtOk : styles.crtErr]}>
+                {`>>> ${feedback.text}`}
+              </Text>
             )}
           </View>
         </View>
+
+        {/* ── CODE ENTRY ── */}
+        {!allDone && (
+          <View style={styles.entryPanel}>
+            <Text style={styles.entryLabel}>CODE EINGABE</Text>
+            <View style={styles.entryRow}>
+              <Text style={styles.promptChar}>▶</Text>
+              <TextInput
+                style={styles.entryInput}
+                value={input}
+                onChangeText={setInput}
+                onSubmitEditing={handleSubmit}
+                placeholder="_ _ _"
+                placeholderTextColor="rgba(24,216,72,0.25)"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="send"
+                keyboardType="numeric"
+              />
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+                <Text style={styles.submitBtnText}>ENTER</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* ── HINT ── */}
+        {!allDone && (
+          <View style={styles.hintBox}>
+            <Text style={styles.hintText}>
+              {'Löse Rätsel im Labor → Code erscheint → hier eingeben'}
+            </Text>
+          </View>
+        )}
+
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgDark },
+  container: { flex: 1, backgroundColor: '#080810' },
   scroll: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 30 },
+  scrollContent: { paddingBottom: 30 },
 
-  crt: {
-    backgroundColor: '#0c0f1a',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 8,
+  // ── Scene banner ──
+  sceneBanner: {
+    width: '100%',
+    height: 150,
     overflow: 'hidden',
+    position: 'relative',
   },
-  titlebar: {
-    flexDirection: 'row',
+  sceneImg: { width: '100%', height: '100%' },
+  scanlines: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    // subtle dark vignette at bottom to blend into UI
+    backgroundImage: 'linear-gradient(transparent 60%, #080810 100%)',
+  },
+  titlePlate: {
+    position: 'absolute',
+    bottom: 8,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    gap: 6,
   },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  titleText: {
-    color: COLORS.textDark,
-    fontSize: 9,
+  titlePlateText: {
+    color: '#18d848',
     fontFamily: 'monospace',
-    marginLeft: 6,
+    fontSize: 10,
+    letterSpacing: 3,
+    backgroundColor: 'rgba(8,8,16,0.75)',
+    paddingHorizontal: 12,
+    paddingVertical: 3,
   },
-  body: {
-    padding: 14,
-  },
-  line: {
-    color: COLORS.textDim,
-    fontFamily: 'monospace',
-    fontSize: 11,
-    lineHeight: 18,
-    marginBottom: 4,
-  },
-  prompt: { color: COLORS.amber },
-  err: { color: '#f87171' },
-  info: { color: '#60a5fa' },
 
-  progressWrap: {
+  // ── Code status panel ──
+  statusPanel: {
+    marginHorizontal: 12,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#1e3e4e',
+    padding: 10,
+    backgroundColor: '#0c141e',
+  },
+  statusHeader: {
+    color: '#3c6e7c',
+    fontFamily: 'monospace',
+    fontSize: 9,
+    letterSpacing: 2,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  codeSlots: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 12,
-    marginBottom: 12,
+    justifyContent: 'space-around',
+  },
+  codeSlot: {
+    alignItems: 'center',
+    width: 70,
     paddingVertical: 8,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderColor: '#1e3e4e',
+    backgroundColor: '#080810',
+    position: 'relative',
   },
-  progressItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  codeSlotDone: {
+    borderColor: '#18d848',
+    backgroundColor: '#04100a',
   },
-  progressDot: {
-    width: 8, height: 8, borderRadius: 4,
-    borderWidth: 1, borderColor: COLORS.textDark,
-  },
-  progressDotSolved: {
-    backgroundColor: COLORS.green,
-    borderColor: COLORS.green,
-  },
-  progressLabel: {
-    color: COLORS.textDark,
-    fontSize: 9,
+  codeSlotNum: {
     fontFamily: 'monospace',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1e3e4e',
+    letterSpacing: 2,
   },
-  progressLabelSolved: {
-    color: COLORS.green,
+  codeSlotNumDone: {
+    color: '#18d848',
+  },
+  codeSlotLabel: {
+    fontFamily: 'monospace',
+    fontSize: 7,
+    color: '#1e3e4e',
+    letterSpacing: 1,
+    marginTop: 3,
+  },
+  codeSlotLabelDone: {
+    color: '#50a010',
+  },
+  codeLedOn: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#18d848',
   },
 
-  currentBox: {
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.amber,
-    paddingLeft: 10,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: 4,
-    marginBottom: 12,
+  // ── CRT phosphor display ──
+  crtDisplay: {
+    marginHorizontal: 12,
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: '#1e3e4e',
+    backgroundColor: '#020a04',
+    padding: 12,
   },
-  currentText: {
-    color: COLORS.textDim,
+  crtInner: { gap: 4 },
+  crtLine: {
+    fontFamily: 'monospace',
     fontSize: 11,
-    fontFamily: 'monospace',
+    color: '#50a010',
+    lineHeight: 18,
   },
+  crtOk:  { color: '#18d848' },
+  crtErr: { color: '#e53e3e' },
 
-  inputArea: {
-    marginTop: 8,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+  // ── Code entry ──
+  entryPanel: {
+    marginHorizontal: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#1e3e4e',
+    padding: 12,
+    backgroundColor: '#020a04',
   },
-  inputRow: {
+  entryLabel: {
+    fontFamily: 'monospace',
+    fontSize: 9,
+    color: '#3c6e7c',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  entryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 6,
   },
-  promptSign: {
-    color: COLORS.amber,
-    fontFamily: 'monospace',
-    fontSize: 16,
-  },
-  input: {
-    flex: 1,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    color: COLORS.text,
+  promptChar: {
+    color: '#18d848',
     fontFamily: 'monospace',
     fontSize: 14,
+  },
+  entryInput: {
+    flex: 1,
+    borderBottomWidth: 2,
+    borderBottomColor: '#18d848',
+    color: '#18d848',
+    fontFamily: 'monospace',
+    fontSize: 20,
     paddingVertical: 6,
-    paddingHorizontal: 4,
+    letterSpacing: 6,
+    textAlign: 'center',
   },
   submitBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 2,
+    borderColor: '#18d848',
+    backgroundColor: 'rgba(24,216,72,0.08)',
   },
-  submitText: {
-    color: COLORS.text,
+  submitBtnText: {
+    color: '#18d848',
     fontFamily: 'monospace',
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1,
   },
 
-  feedback: {
+  // ── Hint ──
+  hintBox: {
+    marginHorizontal: 12,
     marginTop: 10,
     padding: 10,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderLeftWidth: 3,
+    borderLeftColor: '#2c5462',
+    backgroundColor: '#080c14',
   },
-  feedbackOk: {
-    backgroundColor: 'rgba(74,222,128,0.06)',
-    borderColor: 'rgba(74,222,128,0.2)',
-  },
-  feedbackErr: {
-    backgroundColor: 'rgba(248,113,113,0.06)',
-    borderColor: 'rgba(248,113,113,0.2)',
-  },
-  feedbackText: {
+  hintText: {
+    color: '#3c6e7c',
     fontFamily: 'monospace',
-    fontSize: 11,
+    fontSize: 10,
+    lineHeight: 16,
   },
 });
