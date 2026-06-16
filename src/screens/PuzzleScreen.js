@@ -8,9 +8,16 @@
 
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, Image,
 } from 'react-native';
 import { COLORS } from '../config/theme';
+
+const SCENE_IMAGES = [
+  require('../../assets/scenes/scene_02_titration.png'),
+  require('../../assets/scenes/scene_03_cabinet.png'),
+  require('../../assets/scenes/scene_05_apparatus.png'),
+  require('../../assets/scenes/scene_04_periodic.png'),
+];
 
 // ─── Shared sub-components ───────────────────────────────────────────────────
 
@@ -415,6 +422,15 @@ export default function PuzzleScreen({ puzzle, index, isSolved: initialSolved })
         </Text>
       </View>
 
+      {/* Scene banner */}
+      <View style={styles.sceneBanner}>
+        <Image
+          source={SCENE_IMAGES[index]}
+          style={styles.sceneImg}
+          resizeMode="cover"
+        />
+      </View>
+
       {/* Interactive mechanic */}
       {Mechanic && <Mechanic onSolve={handleSolve} />}
 
@@ -456,6 +472,19 @@ function HintSection({ puzzle, solved }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgDark },
   content:   { padding: 14, paddingBottom: 40 },
+
+  sceneBanner: {
+    width: '100%',
+    height: 120,
+    marginBottom: 14,
+    overflow: 'hidden',
+    backgroundColor: '#080810',
+    borderRadius: 4,
+  },
+  sceneImg: {
+    width: '100%',
+    height: '100%',
+  },
 
   header: {
     borderBottomWidth: 1,
