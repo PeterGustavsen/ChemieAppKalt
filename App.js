@@ -7,8 +7,9 @@ import Scene2Titration from './src/scenes/Scene2Titration';
 import Scene3Stoich from './src/scenes/Scene3Stoich';
 import Scene4Periodic from './src/scenes/Scene4Periodic';
 import Scene5Organik from './src/scenes/Scene5Organik';
-import SceneEnd from './src/scenes/SceneEnd';
-import AlarmScreen from './src/ui/AlarmScreen';
+import SceneWin from './src/scenes/SceneWin';
+import SceneFail from './src/scenes/SceneFail';
+import AlarmBubble from './src/ui/AlarmBubble';
 import RadioCall from './src/ui/RadioCall';
 import { ROOMS, TIMER_SECONDS, RADIO_CALLS } from './src/config/game';
 
@@ -33,6 +34,20 @@ export default function App() {
 
   // One-shot flicker when Molar leaves
   const flickerAnim = useRef(new Animated.Value(0)).current;
+  // Screen shake when alarm triggers
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  const triggerShake = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 14, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -14, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 6, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -6, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 55, useNativeDriver: true }),
+    ]).start();
+  }, [shakeAnim]);
 
   // Countdown — only after alarm is dismissed
   useEffect(() => {
@@ -41,7 +56,6 @@ export default function App() {
     if (timeLeft <= 0) { setGameState('fail'); return; }
     const id = setInterval(() => setTimeLeft((t) => {
       const next = Math.max(0, t - 1);
-      // Fire radio calls at their threshold (only once each)
       const call = RADIO_CALLS.find((c) => next <= c.at && !firedCallsRef.current.has(c.at));
       if (call) {
         firedCallsRef.current.add(call.at);
@@ -81,7 +95,7 @@ export default function App() {
   const onBack = useCallback(() => { setScreen('scene1'); setActiveRoom(null); }, []);
   const onReveal = useCallback((id) => setRevealedIds((r) => (r.includes(id) ? r : [...r, id])), []);
 
-  // Molar leaves → power flicker → alarm screen
+  // Molar leaves → power flicker → screen shakes → alarm bubble
   const onIntroDone = useCallback(() => {
     flickerAnim.setValue(0);
     Animated.sequence([
@@ -91,10 +105,13 @@ export default function App() {
       Animated.timing(flickerAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
       Animated.timing(flickerAnim, { toValue: 0.85, duration: 80, useNativeDriver: true }),
       Animated.timing(flickerAnim, { toValue: 0, duration: 70, useNativeDriver: true }),
-    ]).start(() => setAlarmPending(true));
-  }, [flickerAnim]);
+    ]).start(() => {
+      triggerShake();
+      setAlarmPending(true);
+    });
+  }, [flickerAnim, triggerShake]);
 
-  // Alarm screen dismissed → timer starts
+  // Alarm bubble auto-dismissed → timer starts
   const onAlarmDismissed = useCallback(() => {
     setAlarmPending(false);
     setIntroDone(true);
@@ -111,29 +128,36 @@ export default function App() {
     setActiveRoom(null);
     setRadioCall(null);
     flickerAnim.setValue(0);
+    shakeAnim.setValue(0);
     startTimeRef.current = null;
     firedCallsRef.current = new Set();
-  }, [flickerAnim]);
+  }, [flickerAnim, shakeAnim]);
 
   const RoomComp = activeRoom ? ROOM_COMPONENTS[activeRoom.scene] : null;
   const danger = introDone && timeLeft <= 120;
+  // Emergency light activates as soon as alarm triggers (not only after dismissal)
+  const emergencyLight = alarmPending || introDone;
 
-  if (gameState !== 'playing') {
+  if (gameState === 'win') {
     return (
       <View style={styles.container}>
         <StatusBar hidden />
-        <SceneEnd
-          type={gameState}
-          solvedIds={solvedIds}
-          elapsed={elapsed}
-          onRestart={onRestart}
-        />
+        <SceneWin elapsed={elapsed} onRestart={onRestart} />
+      </View>
+    );
+  }
+
+  if (gameState === 'fail') {
+    return (
+      <View style={styles.container}>
+        <StatusBar hidden />
+        <SceneFail solvedIds={solvedIds} onRestart={onRestart} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { transform: [{ translateX: shakeAnim }] }]}>
       <StatusBar hidden />
       {screen === 'scene1' && (
         <Scene1Hub
@@ -144,7 +168,7 @@ export default function App() {
           onIntroDone={onIntroDone}
           timeLeft={introDone ? timeLeft : null}
           danger={danger}
-          emergencyLight={introDone}
+          emergencyLight={emergencyLight}
         />
       )}
       {screen === 'room' && RoomComp && (
@@ -153,20 +177,20 @@ export default function App() {
           onBack={onBack}
           onReveal={onReveal}
           initiallySolved={revealedIds.includes(activeRoom.id)}
-          emergencyLight={introDone}
+          emergencyLight={emergencyLight}
           danger={danger}
         />
       )}
 
-      {/* Alarm screen — shown after flicker, before timer starts */}
-      {alarmPending && <AlarmScreen onDismiss={onAlarmDismissed} />}
+      {/* Alarm intercom bubble — slides in from top after power cut */}
+      {alarmPending && <AlarmBubble onDismiss={onAlarmDismissed} />}
 
-      {/* Molar radio calls during gameplay */}
+      {/* Molar radio calls — top-left speaker widget */}
       {radioCall && <RadioCall lines={radioCall} onDismiss={() => setRadioCall(null)} />}
 
       {/* One-shot power-cut flicker */}
       <Animated.View pointerEvents="none" style={[styles.flicker, { opacity: flickerAnim }]} />
-    </View>
+    </Animated.View>
   );
 }
 
