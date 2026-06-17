@@ -107,45 +107,45 @@ export const PUZZLES = {
 // ── Dialoge ─────────────────────────────────────────────────────────────────
 
 export const INTRO_DIALOG = [
-  'Sie. Ja, SIE. Kommen Sie naeher. Aber nicht ZU nahe.',
-  'Mein Name ist Professor Doktor Molar. Und nein — ich bin nicht paranoid. Paranoid waere, wenn sie NICHT hinter mir her waeren.',
-  'Sie sind also der neue Assistent. Hmpf. Sie koennten auch von DENEN geschickt sein. Den Diensten. Sie wissen schon.',
-  'Egal. Ich habe etwas entwickelt. Etwas, das die halbe Welt gern haette. Deshalb ist alles hier verschluesselt — nur ein echter Chemiker kommt rein.',
-  'Behalten Sie alles im Auge. Vertrauen Sie niemandem. Und fassen Sie meine Reagenzglaeser nicht an.',
+  'Sie. Ja, SIE. Kommen Sie näher. Aber nicht ZU nahe.',
+  'Mein Name ist Professor Doktor Molar. Und nein — ich bin nicht paranoid. Paranoid wäre, wenn sie NICHT hinter mir her wären.',
+  'Sie sind also der neue Assistent. Hmpf. Sie könnten auch von DENEN geschickt sein. Den Diensten. Sie wissen schon.',
+  'Egal. Ich habe etwas entwickelt. Etwas, das die halbe Welt gern hätte. Deshalb ist alles hier verschlüsselt — nur ein echter Chemiker kommt rein.',
+  'Behalten Sie alles im Auge. Vertrauen Sie niemandem. Und fassen Sie meine Reagenzgläser nicht an.',
 ];
 
 export const FAREWELL_DIALOG = [
   'Ich muss kurz nachsehen, ob mich jemand verfolgt hat.',
-  '... Bleiben Sie einfach hier. Ruehren Sie nichts an.',
+  '... Bleiben Sie einfach hier. Rühren Sie nichts an.',
 ];
 
 export const ALARM_LINES = [
-  '[!] SICHERHEITSALARM AUSGELOEST [!]',
+  '[!] SICHERHEITSALARM AUSGELÖST [!]',
   'EINDRINGLING ERKANNT — LABOR VERRIEGELT',
-  'Loesen Sie alle vier verschluesselten Stationen.',
+  'Lösen Sie alle vier verschlüsselten Stationen.',
   'Geben Sie die Codes am Terminal ein.',
   'Zeit bis zur Notabschaltung: 20 Minuten.',
 ];
 
 export const WIN_DIALOG = [
-  'Ich bins, Molar. Vermutlich. Lassen Sie sich nicht taeuschen, falls jemand behauptet, ich zu sein.',
-  'Die Verriegelung... ja. Das war ich. Beim Rausgehen habe ich den falschen Knopf gedrueckt.',
-  'ABER — Sie haben alle vier Verschluesselungen geknackt. Das beweist: Sie sind ein echter Chemiker.',
+  'Ich bins, Molar. Vermutlich. Lassen Sie sich nicht täuschen, falls jemand behauptet, ich zu sein.',
+  'Die Verriegelung... ja. Das war ich. Beim Rausgehen habe ich den falschen Knopf gedrückt.',
+  'ABER — Sie haben alle vier Verschlüsselungen geknackt. Das beweist: Sie sind ein echter Chemiker.',
   'Willkommen im Team. Sagen Sie aber niemandem, was Sie hier gesehen haben. Vor allem nicht den Diensten.',
 ];
 
 // Triggered at specific remaining-time thresholds (seconds left when call fires)
 export const RADIO_CALLS = [
   {
-    at: 17 * 60, // ~3 min after alarm
+    at: 17 * 60,
     lines: [
       'Hier Molar. Kommen Sie rein?',
-      'Ich beobachte die Strasse. Jemand lauft verdaechtig langsam.',
-      '...Das ist eine Katze. Trotzdem verdaechtig. Weitermachen.',
+      'Ich beobachte die Straße. Jemand läuft verdächtig langsam.',
+      '...Das ist eine Katze. Trotzdem verdächtig. Weitermachen.',
     ],
   },
   {
-    at: 13 * 60, // ~7 min in
+    at: 13 * 60,
     lines: [
       'Molar hier. Haben Sie schon Fortschritte?',
       'Gut. Gut gut gut. Misstrauen Sie allem — auch den Messwerten.',
@@ -153,27 +153,27 @@ export const RADIO_CALLS = [
     ],
   },
   {
-    at: 9 * 60, // ~11 min in
+    at: 9 * 60,
     lines: [
       'Kurze Meldung: Die Gegend ist sauber. Relativ.',
-      'Und... aehem... die Kuehlanlage. Ich habe dort eventuell auch etwas gedrueckt.',
-      'Keine Panik. Koennte relevant sein. Koennte.',
+      'Und... ähem... die Kühlanlage. Ich habe dort eventuell auch etwas gedrückt.',
+      'Keine Panik. Könnte relevant sein. Könnte.',
     ],
   },
   {
-    at: 5 * 60, // ~15 min in — starting to get nervous
+    at: 5 * 60,
     lines: [
       'Bitte beeilen Sie sich. Rein professionell gesehen.',
-      'Die Kuehlanlage der explosiven Substanzen laeuft seit einiger Zeit... nicht mehr.',
+      'Die Kühlanlage der explosiven Substanzen läuft seit einiger Zeit... nicht mehr.',
       'Das ist kein Grund zur Panik. Aber bitte: BEEILEN.',
     ],
   },
   {
-    at: 2 * 60, // danger threshold
+    at: 2 * 60,
     lines: [
-      'ICH BIN ES, MOLAR. Hoeren Sie mich?!',
-      'Wurscht wer Sie geschickt hat — loesen Sie das JETZT.',
-      'Ich druecke hier Knoepfe. Hoffentlich die richtigen.',
+      'ICH BIN ES, MOLAR. Hören Sie mich?!',
+      'Wurscht wer Sie geschickt hat — lösen Sie das JETZT.',
+      'Ich drücke hier Knöpfe. Hoffentlich die richtigen.',
     ],
   },
 ];

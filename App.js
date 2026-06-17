@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
+import SceneStart from './src/scenes/SceneStart';
 import Scene1Hub from './src/scenes/Scene1Hub';
 import Scene2Titration from './src/scenes/Scene2Titration';
 import Scene3Stoich from './src/scenes/Scene3Stoich';
@@ -15,7 +16,7 @@ import { ROOMS, TIMER_SECONDS, RADIO_CALLS } from './src/config/game';
 const ROOM_COMPONENTS = { 2: Scene2Titration, 3: Scene3Stoich, 4: Scene4Periodic, 5: Scene5Organik };
 
 export default function App() {
-  const [screen, setScreen] = useState('scene1');
+  const [screen, setScreen] = useState('start');
   const [activeRoom, setActiveRoom] = useState(null);
   const [solvedIds, setSolvedIds] = useState([]);
   const [revealedIds, setRevealedIds] = useState([]);
@@ -93,6 +94,7 @@ export default function App() {
 
   const onEnterRoom = useCallback((room) => { setActiveRoom(room); setScreen('room'); }, []);
   const onBack = useCallback(() => { setScreen('scene1'); setActiveRoom(null); }, []);
+  const onStart = useCallback(() => setScreen('scene1'), []);
   const onReveal = useCallback((id) => setRevealedIds((r) => (r.includes(id) ? r : [...r, id])), []);
 
   // Molar leaves → power flicker → screen shakes → alarm on terminal → timer starts
@@ -123,7 +125,7 @@ export default function App() {
     setAlarmPending(false);
     setTimeLeft(TIMER_SECONDS);
     setGameState('playing');
-    setScreen('scene1');
+    setScreen('start');
     setActiveRoom(null);
     setRadioCall(null);
     setGameKey((k) => k + 1);
@@ -152,6 +154,15 @@ export default function App() {
       <View style={styles.container}>
         <StatusBar hidden />
         <SceneFail solvedIds={solvedIds} onRestart={onRestart} />
+      </View>
+    );
+  }
+
+  if (screen === 'start') {
+    return (
+      <View style={styles.container}>
+        <StatusBar hidden />
+        <SceneStart onStart={onStart} />
       </View>
     );
   }
