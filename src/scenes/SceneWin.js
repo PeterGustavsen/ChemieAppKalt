@@ -26,6 +26,25 @@ export default function SceneWin({ elapsed, onRestart }) {
   const [dialogDone, setDialogDone] = useState(false);
   const [glow, setGlow] = useState(0.25);
 
+  // Molar walks in from the left on mount, dialog starts after he arrives
+  const [molarX, setMolarX] = useState(MOLAR.x - 260); // starts off-screen left
+  const [molarArrived, setMolarArrived] = useState(false);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setMolarX((x) => {
+        const next = x + 6;
+        if (next >= MOLAR.x) {
+          clearInterval(id);
+          setMolarArrived(true);
+          return MOLAR.x;
+        }
+        return next;
+      });
+    }, 32);
+    return () => clearInterval(id);
+  }, []);
+
   // Gentle red glow — power still on emergency
   useEffect(() => {
     let t = 0;
@@ -51,16 +70,16 @@ export default function SceneWin({ elapsed, onRestart }) {
             </Rect>
           </Group>
 
-          {/* Molar returns */}
+          {/* Molar walks back in from the left */}
           <AnimatedSprite
             image={molar} frameCount={MOLAR.frames} frameW={MOLAR.frameW} frameH={MOLAR.frameH}
-            x={MOLAR.x} y={MOLAR.y} scale={MOLAR.scale} fps={7}
+            x={molarX} y={MOLAR.y} scale={MOLAR.scale} fps={7}
           />
         </Group>
       </Canvas>
 
-      {/* Molar's confession dialog */}
-      {!dialogDone && (
+      {/* Molar's confession dialog — only starts after he walks in */}
+      {molarArrived && !dialogDone && (
         <PixelDialog
           speaker="Prof. Dr. Molar"
           lines={WIN_DIALOG}

@@ -19,8 +19,10 @@ import {
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
 const MOLAR = { x: 70, y: 188, frameW: 72, frameH: 112, scale: 1.45, frames: 8 };
-// Lamp is at the top-center of the scene (the ceiling spotlight)
 const LAMP = { x: SCENE_W / 2, y: 8 };
+// Off-screen left (sprite width ~104px at scale 1.45)
+const MOLAR_EXIT_X = -200;
+const WALK_SPEED = 7; // scene units per frame (~30fps)
 
 const fmtTime = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -40,7 +42,32 @@ export default function Scene1Hub({
   const [pressed, setPressed] = useState(null);
   const blink = useSpriteFrame(2, 1.6);
 
-  // Sine-wave glow for emergency lamp — updates React state so Skia re-renders
+  // Molar walk-out state
+  const [molarX, setMolarX] = useState(MOLAR.x);
+  const [molarLeaving, setMolarLeaving] = useState(false);
+  const [molarGone, setMolarGone] = useState(introDone); // already gone if reloaded mid-game
+  const onIntroRef = useRef(onIntroDone);
+  onIntroRef.current = onIntroDone;
+
+  // Walk Molar off to the left when leaving
+  useEffect(() => {
+    if (!molarLeaving) return;
+    const id = setInterval(() => {
+      setMolarX((x) => {
+        const next = x - WALK_SPEED;
+        if (next <= MOLAR_EXIT_X) {
+          clearInterval(id);
+          setMolarGone(true);
+          onIntroRef.current(); // trigger flicker + alarm after he's fully gone
+          return MOLAR_EXIT_X;
+        }
+        return next;
+      });
+    }, 32);
+    return () => clearInterval(id);
+  }, [molarLeaving]);
+
+  // Emergency lamp glow
   const [glow, setGlow] = useState(0.25);
   useEffect(() => {
     if (!emergencyLight) { setGlow(0); return; }
@@ -57,7 +84,7 @@ export default function Scene1Hub({
   }, [emergencyLight, danger]);
 
   const target = ROOMS.find((r) => !solvedIds.includes(r.id)) || null;
-  const busy = !!dialog || terminalOpen;
+  const busy = !!dialog || terminalOpen || molarLeaving;
 
   const ledColor = (room) => {
     if (solvedIds.includes(room.id)) return '#6fe87a';
@@ -83,8 +110,9 @@ export default function Scene1Hub({
     if (!introDone && dialog && dialog.lines === INTRO_DIALOG) {
       setDialog({ speaker: 'Prof. Dr. Molar', lines: FAREWELL_DIALOG });
     } else if (!introDone && dialog && dialog.lines === FAREWELL_DIALOG) {
+      // Molar finishes farewell → walk him off screen, then trigger alarm
       setDialog(null);
-      onIntroDone();
+      setMolarLeaving(true);
     } else {
       setDialog(null);
     }
@@ -100,24 +128,20 @@ export default function Scene1Hub({
             <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />
           )}
 
-          {/* Emergency lighting: darken room, then red radial glow from lamp */}
           {emergencyLight && (
             <Group>
               <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.78)" />
               <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
-                <RadialGradient
-                  c={{ x: LAMP.x, y: LAMP.y }}
-                  r={260}
-                  colors={['#d41808', '#00000000']}
-                />
+                <RadialGradient c={{ x: LAMP.x, y: LAMP.y }} r={260} colors={['#d41808', '#00000000']} />
               </Rect>
             </Group>
           )}
 
-          {!introDone && (
+          {/* Molar — visible during intro and while walking out */}
+          {!molarGone && (
             <AnimatedSprite
               image={molar} frameCount={MOLAR.frames} frameW={MOLAR.frameW} frameH={MOLAR.frameH}
-              x={MOLAR.x} y={MOLAR.y} scale={MOLAR.scale} fps={7}
+              x={molarX} y={MOLAR.y} scale={MOLAR.scale} fps={7}
             />
           )}
 

@@ -31,6 +31,7 @@ export default function App() {
 
   const [radioCall, setRadioCall] = useState(null);
   const firedCallsRef = useRef(new Set());
+  const [gameKey, setGameKey] = useState(0);
 
   // One-shot flicker when Molar leaves
   const flickerAnim = useRef(new Animated.Value(0)).current;
@@ -127,6 +128,7 @@ export default function App() {
     setScreen('scene1');
     setActiveRoom(null);
     setRadioCall(null);
+    setGameKey((k) => k + 1);
     flickerAnim.setValue(0);
     shakeAnim.setValue(0);
     startTimeRef.current = null;
@@ -161,6 +163,7 @@ export default function App() {
       <StatusBar hidden />
       {screen === 'scene1' && (
         <Scene1Hub
+          key={gameKey}
           solvedIds={solvedIds}
           onSubmitCode={onSubmitCode}
           onEnterRoom={onEnterRoom}
