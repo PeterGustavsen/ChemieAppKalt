@@ -8,6 +8,7 @@ import Scene3Stoich from './src/scenes/Scene3Stoich';
 import Scene4Periodic from './src/scenes/Scene4Periodic';
 import Scene5Organik from './src/scenes/Scene5Organik';
 import SceneEnd from './src/scenes/SceneEnd';
+import AlarmScreen from './src/ui/AlarmScreen';
 import { ROOMS, TIMER_SECONDS } from './src/config/game';
 
 const ROOM_COMPONENTS = { 2: Scene2Titration, 3: Scene3Stoich, 4: Scene4Periodic, 5: Scene5Organik };
@@ -17,16 +18,19 @@ export default function App() {
   const [activeRoom, setActiveRoom] = useState(null);
   const [solvedIds, setSolvedIds] = useState([]);
   const [revealedIds, setRevealedIds] = useState([]);
+
+  // Intro flow: false → alarmPending → introDone
   const [introDone, setIntroDone] = useState(false);
+  const [alarmPending, setAlarmPending] = useState(false);
+
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
   const [gameState, setGameState] = useState('playing');
   const startTimeRef = useRef(null);
 
-  // Flicker overlay: fires once when Molar leaves, then fades to dim red
+  // One-shot flicker when Molar leaves
   const flickerAnim = useRef(new Animated.Value(0)).current;
-  const [flickerDone, setFlickerDone] = useState(false);
 
-  // Countdown — starts after intro
+  // Countdown — only after alarm is dismissed
   useEffect(() => {
     if (!introDone || gameState !== 'playing') return;
     if (startTimeRef.current === null) startTimeRef.current = Date.now();
@@ -35,7 +39,6 @@ export default function App() {
     return () => clearInterval(id);
   }, [introDone, timeLeft, gameState]);
 
-  // Win detection
   useEffect(() => {
     if (gameState === 'playing' && solvedIds.length === ROOMS.length) {
       setGameState('win');
@@ -65,29 +68,34 @@ export default function App() {
   const onBack = useCallback(() => { setScreen('scene1'); setActiveRoom(null); }, []);
   const onReveal = useCallback((id) => setRevealedIds((r) => (r.includes(id) ? r : [...r, id])), []);
 
+  // Molar leaves → power flicker → alarm screen
   const onIntroDone = useCallback(() => {
-    setIntroDone(true);
-    // Power cut flicker → emergency red
     flickerAnim.setValue(0);
     Animated.sequence([
       Animated.timing(flickerAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
       Animated.timing(flickerAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
       Animated.timing(flickerAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
       Animated.timing(flickerAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
-      Animated.timing(flickerAnim, { toValue: 0.9, duration: 80, useNativeDriver: true }),
+      Animated.timing(flickerAnim, { toValue: 0.85, duration: 80, useNativeDriver: true }),
       Animated.timing(flickerAnim, { toValue: 0, duration: 70, useNativeDriver: true }),
-    ]).start(() => setFlickerDone(true));
+    ]).start(() => setAlarmPending(true));
   }, [flickerAnim]);
+
+  // Alarm screen dismissed → timer starts
+  const onAlarmDismissed = useCallback(() => {
+    setAlarmPending(false);
+    setIntroDone(true);
+  }, []);
 
   const onRestart = useCallback(() => {
     setSolvedIds([]);
     setRevealedIds([]);
     setIntroDone(false);
+    setAlarmPending(false);
     setTimeLeft(TIMER_SECONDS);
     setGameState('playing');
     setScreen('scene1');
     setActiveRoom(null);
-    setFlickerDone(false);
     flickerAnim.setValue(0);
     startTimeRef.current = null;
   }, [flickerAnim]);
@@ -102,7 +110,6 @@ export default function App() {
         <SceneEnd
           type={gameState}
           solvedIds={solvedIds}
-          timeLeft={timeLeft}
           elapsed={elapsed}
           onRestart={onRestart}
         />
@@ -122,7 +129,7 @@ export default function App() {
           onIntroDone={onIntroDone}
           timeLeft={introDone ? timeLeft : null}
           danger={danger}
-          emergencyLight={flickerDone}
+          emergencyLight={introDone}
         />
       )}
       {screen === 'room' && RoomComp && (
@@ -136,10 +143,11 @@ export default function App() {
         />
       )}
 
-      {/* One-shot power-cut flicker — black screen flash */}
-      {!introDone || !flickerDone ? (
-        <Animated.View pointerEvents="none" style={[styles.flicker, { opacity: flickerAnim }]} />
-      ) : null}
+      {/* Alarm screen — shown after flicker, before timer starts */}
+      {alarmPending && <AlarmScreen onDismiss={onAlarmDismissed} />}
+
+      {/* One-shot power-cut flicker */}
+      <Animated.View pointerEvents="none" style={[styles.flicker, { opacity: flickerAnim }]} />
     </View>
   );
 }

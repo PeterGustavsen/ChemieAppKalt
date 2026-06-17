@@ -30,7 +30,7 @@ function colorFor(v) {
   return { c: '#a9dde4', o: 0.32, s: 'clear' };
 }
 
-export default function Scene2Titration({ room, onBack, onReveal, initiallySolved }) {
+export default function Scene2Titration({ room, onBack, onReveal, initiallySolved, emergencyLight, danger }) {
   const [v, setV] = useState(initiallySolved ? E : 0);
   const st = colorFor(v);
   const solved = st.s === 'equiv';
@@ -89,6 +89,8 @@ export default function Scene2Titration({ room, onBack, onReveal, initiallySolve
       solved={solved}
       solvedLines={['Aequivalenzpunkt bei 23,0 mL.', 'Phenolphthalein bleibt bestaendig rosa.']}
       onBack={onBack}
+      emergencyLight={emergencyLight}
+      danger={danger}
       renderScene={renderScene}
       renderOverlay={renderOverlay}
     />

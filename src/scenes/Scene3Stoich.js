@@ -21,7 +21,7 @@ function counts([a, b, c, d]) {
 }
 const gcd = (x, y) => (y === 0 ? x : gcd(y, x % y));
 
-export default function Scene3Stoich({ room, onBack, onReveal, initiallySolved }) {
+export default function Scene3Stoich({ room, onBack, onReveal, initiallySolved, emergencyLight, danger }) {
   const [co, setCo] = useState(initiallySolved ? [2, 1, 2, 1] : [1, 1, 1, 1]);
   const { left, right } = counts(co);
   const balanced = ELEMENTS.every((e) => left[e] === right[e]);
@@ -75,6 +75,8 @@ export default function Scene3Stoich({ room, onBack, onReveal, initiallySolved }
       solved={solved}
       solvedLines={['2 AgNO₃ + CaCl₂ → 2 AgCl + Ca(NO₃)₂', 'Koeffizienten: 2 – 1 – 2 – 1.']}
       onBack={onBack}
+      emergencyLight={emergencyLight}
+      danger={danger}
       renderOverlay={renderOverlay}
     />
   );

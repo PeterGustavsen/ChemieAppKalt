@@ -1,15 +1,8 @@
-/*
- * SceneShell — gemeinsamer Rahmen aller Raetselkammern (Szene 2-5).
- * Liefert: Skia-Stage (Hintergrund + szenenspezifische Grafik), Intro-Dialog,
- * Hinweis-Button, Zurueck-Button und das "Geloest"-Panel mit Code-Anzeige.
- *
- * Die eigentliche Interaktion (das Raetsel) kommt aus renderScene()/renderOverlay()
- * der jeweiligen Szene — hier nur Huelle & Flow.
- */
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import {
-  Canvas, Image as SkImage, Group, FilterMode, MipmapMode,
+  Canvas, Image as SkImage, Group, Rect, RadialGradient,
+  FilterMode, MipmapMode,
 } from '@shopify/react-native-skia';
 
 import { useStageLayout } from '../engine/layout';
@@ -18,6 +11,7 @@ import PixelDialog from '../ui/PixelDialog';
 import { SCENE_W, SCENE_H } from '../config/game';
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
+const LAMP = { x: SCENE_W / 2, y: 8 };
 
 export default function SceneShell({
   room, bgSource, introLines, hintLines, solved, solvedLines,
@@ -30,22 +24,19 @@ export default function SceneShell({
 
   const busy = !!dialog || hintOpen || solved;
 
-  const redAnim = useRef(new Animated.Value(0)).current;
-  const loopRef = useRef(null);
+  const [glow, setGlow] = useState(0.25);
   useEffect(() => {
-    if (!emergencyLight) { redAnim.setValue(0); return; }
-    if (loopRef.current) loopRef.current.stop();
-    const dur = danger ? 350 : 1100;
-    const hi  = danger ? 0.65 : 0.40;
-    const lo  = danger ? 0.25 : 0.12;
-    loopRef.current = Animated.loop(
-      Animated.sequence([
-        Animated.timing(redAnim, { toValue: hi, duration: dur, useNativeDriver: true }),
-        Animated.timing(redAnim, { toValue: lo, duration: dur, useNativeDriver: true }),
-      ])
-    );
-    loopRef.current.start();
-    return () => { if (loopRef.current) loopRef.current.stop(); };
+    if (!emergencyLight) { setGlow(0); return; }
+    let t = 0;
+    const period = danger ? 700 : 2000;
+    const lo = danger ? 0.30 : 0.18;
+    const hi = danger ? 0.65 : 0.40;
+    const id = setInterval(() => {
+      t += 32;
+      const phase = (Math.sin((t / period) * Math.PI * 2) + 1) / 2;
+      setGlow(lo + (hi - lo) * phase);
+    }, 32);
+    return () => clearInterval(id);
   }, [emergencyLight, danger]);
 
   return (
@@ -54,21 +45,24 @@ export default function SceneShell({
         <Group transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
           {bg && <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />}
           {renderScene && renderScene(L)}
+
+          {emergencyLight && (
+            <Group>
+              <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.78)" />
+              <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
+                <RadialGradient
+                  c={{ x: LAMP.x, y: LAMP.y }}
+                  r={260}
+                  colors={['#d41808', '#00000000']}
+                />
+              </Rect>
+            </Group>
+          )}
         </Group>
       </Canvas>
 
-      {/* Szenen-Overlay (Steuerung) */}
       {renderOverlay && renderOverlay(L, { busy })}
 
-      {/* Emergency lighting: dark base + pulsing red glow */}
-      {emergencyLight && (
-        <>
-          <View pointerEvents="none" style={styles.darkOverlay} />
-          <Animated.View pointerEvents="none" style={[styles.alarmOverlay, { opacity: redAnim }]} />
-        </>
-      )}
-
-      {/* Topbar */}
       <View style={styles.topbar} pointerEvents="box-none">
         <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={onBack}>
           <Text style={styles.tbTxt}>◀ TERMINAL</Text>
@@ -79,7 +73,6 @@ export default function SceneShell({
         </Pressable>
       </View>
 
-      {/* Dialoge */}
       {dialog && (
         <PixelDialog speaker="Prof. Dr. Molar" lines={dialog.lines} onClose={() => setDialog(null)} />
       )}
@@ -87,7 +80,6 @@ export default function SceneShell({
         <PixelDialog speaker="Hinweis" lines={hintLines} onClose={() => setHintOpen(false)} />
       )}
 
-      {/* Geloest */}
       {solved && (
         <View style={styles.solvedWrap}>
           <View style={[styles.solvedBox, { borderColor: room.accent }]}>
@@ -109,8 +101,6 @@ export default function SceneShell({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0d0f17' },
-  darkOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#000', opacity: 0.72 },
-  alarmOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#c01008' },
   topbar: {
     position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row',
     justifyContent: 'space-between', alignItems: 'center', padding: 10,

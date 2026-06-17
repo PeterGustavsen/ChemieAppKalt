@@ -1,21 +1,11 @@
-/*
- * Spiel-Konfiguration: Raeume, Codes, Hotspots, Dialoge.
- * Hotspot-Koordinaten sind DECKUNGSGLEICH mit tools/pixelart/scene_01_lab_hub.py
- * (640x360 Render-Raum).
- */
-
 export const SCENE_W = 640;
 export const SCENE_H = 360;
 
-// Terminal-Hotspot + Screen-Innenfeld (siehe draw_terminal im Python-Skript)
+export const TIMER_SECONDS = 20 * 60;
+
 export const TERMINAL = { x: 246, y: 120, w: 150, h: 150 };
 export const TERMINAL_SCREEN = { x: 258, y: 132, w: 126, h: 106 };
 
-/*
- * Die 4 Raetselraeume. `code` = Loesung, die im jeweiligen Raum erspielt und
- * dann am Haupt-Terminal eingetragen wird. Codes sind vorlaeufig und werden
- * beim Bau der Raeume (Szene 2-5) final verankert.
- */
 export const ROOMS = [
   {
     id: 1, key: 'door1', scene: 2,
@@ -23,7 +13,7 @@ export const ROOMS = [
     accent: '#e36fb0',
     code: '23',
     rect: { x: 440, y: 60, w: 88, h: 104 },
-    examine: 'Eine Buerette ueber einem Erlenmeyerkolben. Titriere bis zum Umschlagpunkt — das Volumen ergibt den Code.',
+    examine: 'Eine Buerette ueber einem Erlenmeyerkolben. Titriere bis zum Umschlagpunkt.',
   },
   {
     id: 2, key: 'door2', scene: 3,
@@ -31,7 +21,7 @@ export const ROOMS = [
     accent: '#e0b44c',
     code: '2121',
     rect: { x: 540, y: 60, w: 88, h: 104 },
-    examine: 'Reagenzien im Regal. Balanciere die Faellungsreaktion — die Koeffizienten ergeben den Code.',
+    examine: 'Reagenzien im Regal. Balanciere die Faellungsreaktion.',
   },
   {
     id: 3, key: 'door3', scene: 4,
@@ -47,17 +37,11 @@ export const ROOMS = [
     accent: '#6fe08a',
     code: '147',
     rect: { x: 540, y: 176, w: 88, h: 104 },
-    examine: 'Glasapparatur ueber einem Bunsenbrenner. Setze den Reaktionsmechanismus richtig zusammen.',
+    examine: 'Glasapparatur ueber einem Bunsenbrenner. Reaktionsmechanismus aufbauen.',
   },
 ];
 
-/*
- * Raetsel-Daten je Kammer. Layout-Koordinaten (Hotspots der Apparaturen)
- * liegen in den jeweiligen Szenen-Komponenten, deckungsgleich mit den
- * Pillow-Generatoren in tools/pixelart/.
- */
 export const PUZZLES = {
-  // ---- Szene 2: Titration ----  Aequivalenzpunkt bei 23,0 mL -> Code 23
   2: {
     intro: [
       'Salzsaeure unbekannter Konzentration im Kolben, Phenolphthalein als Indikator.',
@@ -69,10 +53,9 @@ export const PUZZLES = {
       'Tropfe langsam — am Aequivalenzpunkt genuegt EIN Tropfen fuer den Umschlag.',
       'Das abgelesene Volumen in mL (ohne Komma) ist dein Code.',
     ],
-    equivalence: 23.0,    // mL
+    equivalence: 23.0,
     fineStep: 0.5, coarseStep: 2.0, overshoot: 24.5,
   },
-  // ---- Szene 3: Stoechiometrie ----  2 AgNO3 + 1 CaCl2 -> 2 AgCl + 1 Ca(NO3)2
   3: {
     intro: [
       'Eine Faellungsreaktion: Silbernitrat trifft auf Calciumchlorid.',
@@ -87,7 +70,6 @@ export const PUZZLES = {
     terms: ['AgNO₃', 'CaCl₂', 'AgCl', 'Ca(NO₃)₂'],
     solution: [2, 1, 2, 1],
   },
-  // ---- Szene 4: PSE ----  Neon (10) + Fluor (9) -> Code 109
   4: {
     intro: [
       'Die Wandtafel des Periodensystems. Zwei Elemente sind gesucht.',
@@ -103,7 +85,6 @@ export const PUZZLES = {
       { text: 'Leichtestes Halogen', symbol: 'F', z: 9 },
     ],
   },
-  // ---- Szene 5: Organik ----  Oxidationsreihe Alkohol<Aldehyd<Saeure -> 147
   5: {
     intro: [
       'Drei C₂-Molekuele. Erkenne die funktionellen Gruppen.',
@@ -123,19 +104,32 @@ export const PUZZLES = {
   },
 };
 
-export const TIMER_SECONDS = 20 * 60; // 20 Minuten
+// ── Dialoge ─────────────────────────────────────────────────────────────────
 
-// Molar-Eroeffnungsdialog
 export const INTRO_DIALOG = [
-  'Willkommen! Ich bin Prof. Dr. Molar — aber wir haben ein PROBLEM.',
-  'Die Kuehlanlage fuer die explosiven Reagenzien ist ausgefallen!',
-  'In 20 Minuten erreichen die Substanzen die kritische Temperatur.',
-  'Vier Kammern, vier Codes. Loese die Raetsel und gib die Codes hier ein.',
-  'Das entriegelt den Sicherheitsverschluss — dann kannst du fliehen!',
+  'Sie. Ja, SIE. Kommen Sie naeher. Aber nicht ZU nahe.',
+  'Mein Name ist Professor Doktor Molar. Und nein — ich bin nicht paranoid. Paranoid waere, wenn sie NICHT hinter mir her waeren.',
+  'Sie sind also der neue Assistent. Hmpf. Sie koennten auch von DENEN geschickt sein. Den Diensten. Sie wissen schon.',
+  'Egal. Ich habe etwas entwickelt. Etwas, das die halbe Welt gern haette. Deshalb ist alles hier verschluesselt — nur ein echter Chemiker kommt rein.',
+  'Behalten Sie alles im Auge. Vertrauen Sie niemandem. Und fassen Sie meine Reagenzglaeser nicht an.',
 ];
 
-// Abschied — Molar verlässt das Labor, Notstrom springt an
 export const FAREWELL_DIALOG = [
-  'Der Notstromgenerator! Ich muss sofort in den Keller — du bist allein!',
-  'Vertrau der Chemie. Beeile dich. Viel Glueck!',
+  'Ich muss kurz nachsehen, ob mich jemand verfolgt hat.',
+  '... Bleiben Sie einfach hier. Ruehren Sie nichts an.',
+];
+
+export const ALARM_LINES = [
+  '⚠ SICHERHEITSALARM AUSGELOEST ⚠',
+  'EINDRINGLING ERKANNT — LABOR VERRIEGELT',
+  'Loesen Sie alle vier verschluesselten Stationen.',
+  'Geben Sie die Codes am Terminal ein.',
+  'Zeit bis zur Notabschaltung: 20 Minuten.',
+];
+
+export const WIN_DIALOG = [
+  'Ich bins, Molar. Vermutlich. Lassen Sie sich nicht taeuschen, falls jemand behauptet, ich zu sein.',
+  'Die Verriegelung... ja. Das war ich. Beim Rausgehen habe ich den falschen Knopf gedrueckt.',
+  'ABER — Sie haben alle vier Verschluesselungen geknackt. Das beweist: Sie sind ein echter Chemiker.',
+  'Willkommen im Team. Sagen Sie aber niemandem, was Sie hier gesehen haben. Vor allem nicht den Diensten.',
 ];

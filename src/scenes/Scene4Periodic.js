@@ -21,7 +21,7 @@ const ELS = [
   ['Na', 11, 0, 2], ['Mg', 12, 1, 2], ['Al', 13, 12, 2], ['Si', 14, 13, 2], ['P', 15, 14, 2], ['S', 16, 15, 2], ['Cl', 17, 16, 2], ['Ar', 18, 17, 2],
 ].map(([sym, z, col, row]) => ({ sym, z, ...cell(col, row) }));
 
-export default function Scene4Periodic({ room, onBack, onReveal, initiallySolved }) {
+export default function Scene4Periodic({ room, onBack, onReveal, initiallySolved, emergencyLight, danger }) {
   const [found, setFound] = useState(initiallySolved ? P.clues.map((c) => c.z) : []);
   const [wrong, setWrong] = useState(null);
   const idx = found.length;
@@ -85,6 +85,8 @@ export default function Scene4Periodic({ room, onBack, onReveal, initiallySolved
       solved={solved}
       solvedLines={['Neon (Ordnungszahl 10), Fluor (Ordnungszahl 9).', 'Ordnungszahlen ergeben: 109.']}
       onBack={onBack}
+      emergencyLight={emergencyLight}
+      danger={danger}
       renderScene={renderScene}
       renderOverlay={renderOverlay}
     />

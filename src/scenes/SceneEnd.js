@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
-import { ROOMS } from '../config/game';
+import { ROOMS, WIN_DIALOG } from '../config/game';
 
 const fmtTime = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -32,10 +32,11 @@ export default function SceneEnd({ type, solvedIds, timeLeft, elapsed, onRestart
         {win ? (
           <>
             <Text style={styles.sub}>Prof. Dr. Molar meldet sich per Funk:</Text>
-            <Text style={styles.quote}>
-              "Ausgezeichnet! Ich wusste, du schaffst das.{'\n'}
-              Das Labor ist entsperrt. Du bist frei!"
-            </Text>
+            {WIN_DIALOG.map((line, i) => (
+              <Text key={i} style={[styles.quote, i === WIN_DIALOG.length - 1 && styles.quoteLast]}>
+                "{line}"
+              </Text>
+            ))}
             <Text style={styles.label}>GELÖST IN</Text>
             <Text style={[styles.bigTime, { color: '#6fe87a' }]}>{fmtTime(elapsed)}</Text>
 
@@ -119,8 +120,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1, textAlign: 'center',
   },
   quote: {
-    color: '#aab6c6', fontFamily: 'monospace', fontSize: 13,
-    textAlign: 'center', marginTop: 10, lineHeight: 20,
+    color: '#aab6c6', fontFamily: 'monospace', fontSize: 11,
+    textAlign: 'center', marginTop: 6, lineHeight: 18,
+  },
+  quoteLast: {
+    color: '#6fe87a', fontStyle: 'italic',
   },
   label: {
     color: '#718096', fontFamily: 'monospace', fontSize: 9,

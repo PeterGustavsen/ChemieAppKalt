@@ -17,7 +17,7 @@ const CARDS = [{ x: 56, y: 132, w: 120, h: 112 }, { x: 192, y: 132, w: 120, h: 1
 const DISPLAY = { x: 470, y: 60, w: 140, h: 56 };
 const BX = 520; // Brenner-x (wie im Generator)
 
-export default function Scene5Organik({ room, onBack, onReveal, initiallySolved }) {
+export default function Scene5Organik({ room, onBack, onReveal, initiallySolved, emergencyLight, danger }) {
   const [seq, setSeq] = useState(initiallySolved ? [0, 1, 2] : []);
   const [wrong, setWrong] = useState(false);
   const flame = useSpriteFrame(4, 9);
@@ -97,6 +97,8 @@ export default function Scene5Organik({ room, onBack, onReveal, initiallySolved 
       solved={solved}
       solvedLines={['Alkohol → Aldehyd → Carbonsaeure.', 'Ethanol(1) · Ethanal(4) · Essigsaeure(7) → 147.']}
       onBack={onBack}
+      emergencyLight={emergencyLight}
+      danger={danger}
       renderScene={renderScene}
       renderOverlay={renderOverlay}
     />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import {
-  Canvas, Image as SkImage, Group, Rect,
+  Canvas, Image as SkImage, Group, Rect, RadialGradient,
   FilterMode, MipmapMode,
 } from '@shopify/react-native-skia';
 
@@ -19,6 +19,8 @@ import {
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
 const MOLAR = { x: 70, y: 188, frameW: 72, frameH: 112, scale: 1.45, frames: 8 };
+// Lamp is at the top-center of the scene (the ceiling spotlight)
+const LAMP = { x: SCENE_W / 2, y: 8 };
 
 const fmtTime = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -38,24 +40,20 @@ export default function Scene1Hub({
   const [pressed, setPressed] = useState(null);
   const blink = useSpriteFrame(2, 1.6);
 
-  // Emergency red overlay — slow pulse normally, fast pulse when < 2 min
-  const redAnim = useRef(new Animated.Value(0)).current;
-  const loopRef = useRef(null);
-
+  // Sine-wave glow for emergency lamp — updates React state so Skia re-renders
+  const [glow, setGlow] = useState(0.25);
   useEffect(() => {
-    if (!emergencyLight) { redAnim.setValue(0); return; }
-    if (loopRef.current) loopRef.current.stop();
-    const dur = danger ? 350 : 1100;
-    const hi  = danger ? 0.65 : 0.40;
-    const lo  = danger ? 0.25 : 0.12;
-    loopRef.current = Animated.loop(
-      Animated.sequence([
-        Animated.timing(redAnim, { toValue: hi, duration: dur, useNativeDriver: true }),
-        Animated.timing(redAnim, { toValue: lo, duration: dur, useNativeDriver: true }),
-      ])
-    );
-    loopRef.current.start();
-    return () => { if (loopRef.current) loopRef.current.stop(); };
+    if (!emergencyLight) { setGlow(0); return; }
+    let t = 0;
+    const period = danger ? 700 : 2000;
+    const lo = danger ? 0.30 : 0.18;
+    const hi = danger ? 0.65 : 0.40;
+    const id = setInterval(() => {
+      t += 32;
+      const phase = (Math.sin((t / period) * Math.PI * 2) + 1) / 2;
+      setGlow(lo + (hi - lo) * phase);
+    }, 32);
+    return () => clearInterval(id);
   }, [emergencyLight, danger]);
 
   const target = ROOMS.find((r) => !solvedIds.includes(r.id)) || null;
@@ -102,6 +100,20 @@ export default function Scene1Hub({
             <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />
           )}
 
+          {/* Emergency lighting: darken room, then red radial glow from lamp */}
+          {emergencyLight && (
+            <Group>
+              <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.78)" />
+              <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
+                <RadialGradient
+                  c={{ x: LAMP.x, y: LAMP.y }}
+                  r={260}
+                  colors={['#d41808', '#00000000']}
+                />
+              </Rect>
+            </Group>
+          )}
+
           {!introDone && (
             <AnimatedSprite
               image={molar} frameCount={MOLAR.frames} frameW={MOLAR.frameW} frameH={MOLAR.frameH}
@@ -125,14 +137,6 @@ export default function Scene1Hub({
           )}
         </Group>
       </Canvas>
-
-      {/* Emergency lighting: dark base (power cut) + pulsing red glow */}
-      {emergencyLight && (
-        <>
-          <View pointerEvents="none" style={styles.darkOverlay} />
-          <Animated.View pointerEvents="none" style={[styles.alarmOverlay, { opacity: redAnim }]} />
-        </>
-      )}
 
       {!terminalOpen && (
         <View pointerEvents="none" style={[styles.screen, L.toScreen(TERMINAL_SCREEN)]}>
@@ -204,14 +208,6 @@ function Hotspot({ layout, rectObj, color, onIn, onOut, onPress }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0d0f17' },
   hotspot: { position: 'absolute' },
-  darkOverlay: {
-    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-    backgroundColor: '#000000', opacity: 0.72,
-  },
-  alarmOverlay: {
-    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-    backgroundColor: '#c01008',
-  },
   screen: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   screenTitle: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 9, letterSpacing: 1 },
   screenCodes: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 11, marginTop: 6, fontWeight: 'bold' },
