@@ -17,7 +17,7 @@
     <script src="/canvaskit.js"></script>
     <script>
       window.__skiaReady = CanvasKitInit({
-        locateFile: function(f) { return '/_expo/static/js/web/' + f; },
+        locateFile: function(f) { return '/' + f; },
       }).then(function(ck) { window.CanvasKit = ck; });
     </script>
     <script>
