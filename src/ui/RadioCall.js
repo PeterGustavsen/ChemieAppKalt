@@ -1,23 +1,52 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, Animated } from 'react-native';
 
-// Molar sprite sheet: 8 frames × 72px wide × 112px tall
 const FRAME_W = 72;
 const FRAME_H = 112;
 
 export default function RadioCall({ lines, onDismiss }) {
   const slide = useRef(new Animated.Value(-160)).current;
   const [lineIdx, setLineIdx] = useState(0);
+  const [shown, setShown] = useState('');
+  const [done, setDone] = useState(false);
+  const iRef = useRef(0);
+  const timer = useRef(null);
 
   useEffect(() => {
     Animated.spring(slide, { toValue: 0, useNativeDriver: true, tension: 70, friction: 11 }).start();
   }, []);
+
+  const text = lines[lineIdx] || '';
+
+  useEffect(() => {
+    setShown('');
+    setDone(false);
+    iRef.current = 0;
+    clearInterval(timer.current);
+    timer.current = setInterval(() => {
+      iRef.current += 1;
+      if (iRef.current >= text.length) {
+        setShown(text);
+        setDone(true);
+        clearInterval(timer.current);
+      } else {
+        setShown(text.slice(0, iRef.current));
+      }
+    }, 28);
+    return () => clearInterval(timer.current);
+  }, [text]);
 
   const dismiss = () => {
     Animated.timing(slide, { toValue: -160, duration: 200, useNativeDriver: true }).start(onDismiss);
   };
 
   const advance = () => {
+    if (!done) {
+      clearInterval(timer.current);
+      setShown(text);
+      setDone(true);
+      return;
+    }
     if (lineIdx < lines.length - 1) setLineIdx((i) => i + 1);
     else dismiss();
   };
@@ -25,7 +54,6 @@ export default function RadioCall({ lines, onDismiss }) {
   return (
     <Animated.View style={[styles.root, { transform: [{ translateY: slide }] }]}>
       <View style={styles.inner}>
-        {/* Molar portrait — first frame of sprite sheet */}
         <View style={styles.portrait}>
           <View style={styles.spriteClip}>
             <Image
@@ -37,14 +65,15 @@ export default function RadioCall({ lines, onDismiss }) {
           <Text style={styles.name}>Dr. Molar</Text>
         </View>
 
-        {/* Speech bubble */}
         <Pressable style={styles.bubble} onPress={advance}>
           <View style={styles.bubbleTail} />
           <Text style={styles.caller}>{'>> FUNK-EINGANG'}</Text>
-          <Text style={styles.line}>{lines[lineIdx]}</Text>
-          <Text style={styles.next}>
-            {lineIdx < lines.length - 1 ? '▶ WEITER' : '▶ OK'}
-          </Text>
+          <Text style={styles.line}>{shown}</Text>
+          {done && (
+            <Text style={styles.next}>
+              {lineIdx < lines.length - 1 ? '▶ WEITER' : '▶ OK'}
+            </Text>
+          )}
         </Pressable>
       </View>
     </Animated.View>
