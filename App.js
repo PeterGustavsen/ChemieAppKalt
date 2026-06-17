@@ -57,15 +57,28 @@ export default function App() {
     if (timeLeft <= 0) { setGameState('fail'); return; }
     const id = setInterval(() => setTimeLeft((t) => {
       const next = Math.max(0, t - 1);
-      const call = RADIO_CALLS.find((c) => next <= c.at && !firedCallsRef.current.has(c.at));
+      // Time-based panic call only (after: null)
+      const call = RADIO_CALLS.find((c) => c.after === null && next <= c.at && !firedCallsRef.current.has('time'));
       if (call) {
-        firedCallsRef.current.add(call.at);
+        firedCallsRef.current.add('time');
         setRadioCall(call.lines);
       }
       return next;
     }), 1000);
     return () => clearInterval(id);
   }, [introDone, timeLeft, gameState]);
+
+  // Progress-based radio calls
+  useEffect(() => {
+    if (!introDone || gameState !== 'playing') return;
+    const call = RADIO_CALLS.find(
+      (c) => c.after === solvedIds.length && !firedCallsRef.current.has(`progress-${c.after}`)
+    );
+    if (call) {
+      firedCallsRef.current.add(`progress-${call.after}`);
+      setRadioCall(call.lines);
+    }
+  }, [introDone, solvedIds, gameState]);
 
   useEffect(() => {
     if (gameState === 'playing' && solvedIds.length === ROOMS.length) {

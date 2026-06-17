@@ -134,41 +134,43 @@ export const WIN_DIALOG = [
   'Willkommen im Team. Sagen Sie aber niemandem, was Sie hier gesehen haben. Vor allem nicht den Diensten.',
 ];
 
-// Triggered at specific remaining-time thresholds (seconds left when call fires)
+// Progress-based calls fire when solvedIds.length reaches `after`.
+// The final panic call (after: null) fires at 2 min remaining.
 export const RADIO_CALLS = [
   {
-    at: 17 * 60,
+    after: 0,
     lines: [
-      'Hier Molar. Kommen Sie rein?',
+      'Hier Molar. Empfangen Sie mich?',
       'Ich beobachte die Straße. Jemand läuft verdächtig langsam.',
-      '...Das ist eine Katze. Trotzdem verdächtig. Weitermachen.',
+      '...Das ist eine Katze. Trotzdem verdächtig. Fangen Sie an.',
     ],
   },
   {
-    at: 13 * 60,
+    after: 1,
     lines: [
-      'Molar hier. Haben Sie schon Fortschritte?',
-      'Gut. Gut gut gut. Misstrauen Sie allem — auch den Messwerten.',
-      'Besonders den Messwerten.',
+      'Erster Code bestätigt. Gut.',
+      'Misstrauen Sie allen Messwerten — besonders denen, die stimmen.',
+      'Weitermachen.',
     ],
   },
   {
-    at: 9 * 60,
+    after: 2,
     lines: [
-      'Kurze Meldung: Die Gegend ist sauber. Relativ.',
-      'Und... ähem... die Kühlanlage. Ich habe dort eventuell auch etwas gedrückt.',
-      'Keine Panik. Könnte relevant sein. Könnte.',
+      'Zwei Codes. Halbzeit. Molar hier.',
+      'Ähem — die Kühlanlage. Ich habe dort beim Rausgehen eventuell etwas gedrückt.',
+      'Könnte relevant sein. Könnte.',
     ],
   },
   {
-    at: 5 * 60,
+    after: 3,
     lines: [
-      'Bitte beeilen Sie sich. Rein professionell gesehen.',
-      'Die Kühlanlage der explosiven Substanzen läuft seit einiger Zeit... nicht mehr.',
-      'Das ist kein Grund zur Panik. Aber bitte: BEEILEN.',
+      'Drei Codes! Noch einer.',
+      'Die Kühlanlage der explosiven Substanzen — sie läuft nicht mehr.',
+      'Bitte. BEEILEN.',
     ],
   },
   {
+    after: null, // time-based panic — fires at 2 min remaining
     at: 2 * 60,
     lines: [
       'ICH BIN ES, MOLAR. Hören Sie mich?!',
