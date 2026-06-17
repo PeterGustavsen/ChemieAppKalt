@@ -62,6 +62,7 @@ export default function Scene1Hub({
         if (next <= MOLAR_EXIT_X) {
           clearInterval(id);
           setMolarGone(true);
+          setMolarLeaving(false);
           onIntroRef.current();
           return MOLAR_EXIT_X;
         }
@@ -79,7 +80,7 @@ export default function Scene1Hub({
     let t = 0;
     const id = setInterval(() => {
       t += 32;
-      setMolarBobY(Math.sin((t / 900) * Math.PI * 2) * 4);
+      setMolarBobY(Math.sin((t / 2400) * Math.PI * 2) * 3);
     }, 32);
     return () => clearInterval(id);
   }, [dialogOpen]);
@@ -136,14 +137,14 @@ export default function Scene1Hub({
 
   const onDoor = (room) => {
     if (solvedIds.includes(room.id)) {
-      setDialog({ speaker: 'Prof. Dr. Molar', lines: ['Diese Kammer ist bereits geloest. Gut gemacht!'] });
+      setDialog({ speaker: 'Prof. Dr. Molar', lines: ['Diese Kammer ist bereits gelöst. Gut gemacht!'] });
     } else if (target && room.id === target.id) {
       onEnterRoom(room);
     } else {
       const need = target ? target.id : '?';
       setDialog({
         speaker: 'Prof. Dr. Molar',
-        lines: [room.examine, `Noch verriegelt — loese zuerst Kammer ${need}.`],
+        lines: [room.examine, `Noch verriegelt — löse zuerst Kammer ${need}.`],
       });
     }
   };
@@ -164,7 +165,8 @@ export default function Scene1Hub({
   return (
     <View style={styles.root}>
       <Canvas style={{ flex: 1 }}>
-        <Group transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
+        <Group clip={{ x: L.offsetX, y: L.offsetY, width: L.stageW, height: L.stageH }}
+          transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
           {bg && (
             <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />
           )}

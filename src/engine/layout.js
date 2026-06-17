@@ -7,9 +7,7 @@ import { SCENE_W, SCENE_H } from '../config/game';
 
 export function useStageLayout() {
   const { width, height } = useWindowDimensions();
-  const raw = Math.min(width / SCENE_W, height / SCENE_H);
-  // Integer-Scaling fuer scharfe Pixel; unter 1 (sehr kleine Screens) raw nutzen.
-  const scale = raw >= 1 ? Math.floor(raw) : raw;
+  const scale = Math.min(width / SCENE_W, height / SCENE_H);
   const stageW = SCENE_W * scale;
   const stageH = SCENE_H * scale;
   const offsetX = Math.round((width - stageW) / 2);
