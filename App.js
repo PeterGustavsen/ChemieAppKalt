@@ -168,6 +168,7 @@ export default function App() {
           onSubmitCode={onSubmitCode}
           onEnterRoom={onEnterRoom}
           introDone={introDone}
+          alarmPending={alarmPending}
           onIntroDone={onIntroDone}
           timeLeft={introDone ? timeLeft : null}
           danger={danger}

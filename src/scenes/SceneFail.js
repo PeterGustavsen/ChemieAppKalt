@@ -52,7 +52,7 @@ export default function SceneFail({ solvedIds, onRestart }) {
       </View>
 
       <View style={styles.center}>
-        <Text style={styles.headline}>⚠  ZEIT ABGELAUFEN  ⚠</Text>
+        <Text style={styles.headline}>[!]  ZEIT ABGELAUFEN  [!]</Text>
 
         <Text style={styles.statusLabel}>KAMMERSTATUS</Text>
         <View style={styles.codeRow}>

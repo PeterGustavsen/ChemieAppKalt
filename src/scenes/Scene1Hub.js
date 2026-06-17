@@ -19,17 +19,17 @@ import {
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
 const MOLAR = { x: 70, y: 188, frameW: 72, frameH: 112, scale: 1.45, frames: 8 };
-const LAMP = { x: SCENE_W / 2, y: 8 };
-// Off-screen left (sprite width ~104px at scale 1.45)
+const LAMP_MAIN = { x: SCENE_W / 2, y: 8 };       // ceiling centre lamp
+const LAMP_TASKS = { x: 490, y: 10 };              // second lamp above task boxes
 const MOLAR_EXIT_X = -200;
-const WALK_SPEED = 7; // scene units per frame (~30fps)
+const WALK_SPEED = 7;
 
 const fmtTime = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
 export default function Scene1Hub({
   solvedIds, onSubmitCode, onEnterRoom,
-  introDone, onIntroDone, timeLeft, danger, emergencyLight,
+  introDone, alarmPending, onIntroDone, timeLeft, danger, emergencyLight,
 }) {
   const L = useStageLayout();
   const bg = usePixelImage(require('../../assets/scenes/scene_01_lab_hub.png'));
@@ -42,14 +42,13 @@ export default function Scene1Hub({
   const [pressed, setPressed] = useState(null);
   const blink = useSpriteFrame(2, 1.6);
 
-  // Molar walk-out state
+  // ── Molar walk-out ──────────────────────────────────────────────────────────
   const [molarX, setMolarX] = useState(MOLAR.x);
   const [molarLeaving, setMolarLeaving] = useState(false);
-  const [molarGone, setMolarGone] = useState(introDone); // already gone if reloaded mid-game
+  const [molarGone, setMolarGone] = useState(introDone);
   const onIntroRef = useRef(onIntroDone);
   onIntroRef.current = onIntroDone;
 
-  // Walk Molar off to the left when leaving
   useEffect(() => {
     if (!molarLeaving) return;
     const id = setInterval(() => {
@@ -58,7 +57,7 @@ export default function Scene1Hub({
         if (next <= MOLAR_EXIT_X) {
           clearInterval(id);
           setMolarGone(true);
-          onIntroRef.current(); // trigger flicker + alarm after he's fully gone
+          onIntroRef.current();
           return MOLAR_EXIT_X;
         }
         return next;
@@ -67,8 +66,21 @@ export default function Scene1Hub({
     return () => clearInterval(id);
   }, [molarLeaving]);
 
-  // Emergency lamp glow
-  const [glow, setGlow] = useState(0.25);
+  // ── Molar bob while talking ─────────────────────────────────────────────────
+  const [molarBobY, setMolarBobY] = useState(0);
+  const dialogOpen = !!dialog;
+  useEffect(() => {
+    if (!dialogOpen) { setMolarBobY(0); return; }
+    let t = 0;
+    const id = setInterval(() => {
+      t += 32;
+      setMolarBobY(Math.sin((t / 900) * Math.PI * 2) * 4);
+    }, 32);
+    return () => clearInterval(id);
+  }, [dialogOpen]);
+
+  // ── Emergency main lamp glow ────────────────────────────────────────────────
+  const [glow, setGlow] = useState(0);
   useEffect(() => {
     if (!emergencyLight) { setGlow(0); return; }
     let t = 0;
@@ -82,6 +94,16 @@ export default function Scene1Hub({
     }, 32);
     return () => clearInterval(id);
   }, [emergencyLight, danger]);
+
+  // ── Second red lamp above task boxes (3 s delay after emergency) ────────────
+  const [taskLamp, setTaskLamp] = useState(false);
+  const taskTimerRef = useRef(null);
+  useEffect(() => {
+    if (emergencyLight && !taskLamp) {
+      taskTimerRef.current = setTimeout(() => setTaskLamp(true), 3000);
+    }
+    return () => clearTimeout(taskTimerRef.current);
+  }, [emergencyLight]);
 
   const target = ROOMS.find((r) => !solvedIds.includes(r.id)) || null;
   const busy = !!dialog || terminalOpen || molarLeaving;
@@ -110,7 +132,6 @@ export default function Scene1Hub({
     if (!introDone && dialog && dialog.lines === INTRO_DIALOG) {
       setDialog({ speaker: 'Prof. Dr. Molar', lines: FAREWELL_DIALOG });
     } else if (!introDone && dialog && dialog.lines === FAREWELL_DIALOG) {
-      // Molar finishes farewell → walk him off screen, then trigger alarm
       setDialog(null);
       setMolarLeaving(true);
     } else {
@@ -128,20 +149,28 @@ export default function Scene1Hub({
             <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />
           )}
 
+          {/* Emergency lighting */}
           {emergencyLight && (
             <Group>
               <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.78)" />
+              {/* Main ceiling lamp */}
               <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
-                <RadialGradient c={{ x: LAMP.x, y: LAMP.y }} r={260} colors={['#d41808', '#00000000']} />
+                <RadialGradient c={LAMP_MAIN} r={260} colors={['#d41808', '#00000000']} />
               </Rect>
+              {/* Second lamp above task boxes — activates 3 s later */}
+              {taskLamp && (
+                <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow * 0.8}>
+                  <RadialGradient c={LAMP_TASKS} r={200} colors={['#d41808', '#00000000']} />
+                </Rect>
+              )}
             </Group>
           )}
 
-          {/* Molar — visible during intro and while walking out */}
+          {/* Molar — with bob animation while talking */}
           {!molarGone && (
             <AnimatedSprite
               image={molar} frameCount={MOLAR.frames} frameW={MOLAR.frameW} frameH={MOLAR.frameH}
-              x={molarX} y={MOLAR.y} scale={MOLAR.scale} fps={7}
+              x={molarX} y={MOLAR.y + molarBobY} scale={MOLAR.scale} fps={7}
             />
           )}
 
@@ -164,13 +193,31 @@ export default function Scene1Hub({
 
       {!terminalOpen && (
         <View pointerEvents="none" style={[styles.screen, L.toScreen(TERMINAL_SCREEN)]}>
-          <Text style={styles.screenTitle}>SICHERHEITS-</Text>
-          <Text style={styles.screenTitle}>TERMINAL v7</Text>
-          <Text style={styles.screenCodes}>CODES {solvedIds.length}/4</Text>
-          {introDone && timeLeft !== null ? (
-            <Text style={[styles.screenTimer, { color: timerColor }]}>{fmtTime(timeLeft)}</Text>
+          {!emergencyLight ? (
+            <>
+              <Text style={styles.screenTitle}>CHEM. LABS</Text>
+              <Text style={styles.screenTitle}>MUENCHEN</Text>
+              <Text style={styles.screenSub}>SICHERHEITSSYSTEM</Text>
+              <Text style={styles.screenSub}>STATUS: OK</Text>
+            </>
+          ) : alarmPending ? (
+            <>
+              <Text style={styles.screenAlarm}>[!] ALARM</Text>
+              <Text style={styles.screenAlarmSub}>GESPERRT</Text>
+              <Text style={styles.screenSub}>4 CODES</Text>
+              <Text style={styles.screenSub}>ERFORDERLICH</Text>
+            </>
           ) : (
-            <Text style={styles.screenHint}>{'>'} TIPPEN</Text>
+            <>
+              <Text style={styles.screenTitle}>SICHERHEITS-</Text>
+              <Text style={styles.screenTitle}>TERMINAL v7</Text>
+              <Text style={styles.screenCodes}>CODES {solvedIds.length}/4</Text>
+              {timeLeft !== null ? (
+                <Text style={[styles.screenTimer, { color: timerColor }]}>{fmtTime(timeLeft)}</Text>
+              ) : (
+                <Text style={styles.screenHint}>{'>'} TIPPEN</Text>
+              )}
+            </>
           )}
         </View>
       )}
@@ -237,4 +284,7 @@ const styles = StyleSheet.create({
   screenCodes: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 11, marginTop: 6, fontWeight: 'bold' },
   screenHint: { color: '#2f8f3a', fontFamily: 'monospace', fontSize: 9, marginTop: 8 },
   screenTimer: { fontFamily: 'monospace', fontSize: 15, marginTop: 6, fontWeight: 'bold', letterSpacing: 2 },
+  screenSub: { color: '#3a6e3f', fontFamily: 'monospace', fontSize: 8, letterSpacing: 1 },
+  screenAlarm: { color: '#ff3010', fontFamily: 'monospace', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
+  screenAlarmSub: { color: '#cc2010', fontFamily: 'monospace', fontSize: 10, fontWeight: 'bold', letterSpacing: 2 },
 });

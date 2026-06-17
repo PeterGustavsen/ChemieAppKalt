@@ -120,7 +120,7 @@ export const FAREWELL_DIALOG = [
 ];
 
 export const ALARM_LINES = [
-  '⚠ SICHERHEITSALARM AUSGELOEST ⚠',
+  '[!] SICHERHEITSALARM AUSGELOEST [!]',
   'EINDRINGLING ERKANNT — LABOR VERRIEGELT',
   'Loesen Sie alle vier verschluesselten Stationen.',
   'Geben Sie die Codes am Terminal ein.',

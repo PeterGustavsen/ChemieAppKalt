@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { ALARM_LINES } from '../config/game';
 
 export default function AlarmBubble({ onDismiss }) {
-  const slide = useRef(new Animated.Value(-160)).current;
+  const slide = useRef(new Animated.Value(200)).current; // slides UP from bottom
   const blink = useRef(new Animated.Value(1)).current;
   const [lineIdx, setLineIdx] = useState(0);
   const dismissed = useRef(false);
@@ -26,7 +26,7 @@ export default function AlarmBubble({ onDismiss }) {
           if (!dismissed.current) {
             dismissed.current = true;
             setTimeout(() => {
-              Animated.timing(slide, { toValue: -160, duration: 220, useNativeDriver: true })
+              Animated.timing(slide, { toValue: 200, duration: 220, useNativeDriver: true })
                 .start(onDismiss);
             }, 1800);
           }
@@ -41,7 +41,7 @@ export default function AlarmBubble({ onDismiss }) {
   const dismiss = () => {
     if (dismissed.current) return;
     dismissed.current = true;
-    Animated.timing(slide, { toValue: -160, duration: 200, useNativeDriver: true }).start(onDismiss);
+    Animated.timing(slide, { toValue: 200, duration: 200, useNativeDriver: true }).start(onDismiss);
   };
 
   return (
@@ -67,9 +67,9 @@ export default function AlarmBubble({ onDismiss }) {
 
 const styles = StyleSheet.create({
   root: {
-    position: 'absolute', top: 0, left: 0, right: 0,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: '#0a0000',
-    borderBottomWidth: 3, borderColor: '#c01008',
+    borderTopWidth: 3, borderColor: '#c01008',
     zIndex: 200,
   },
   inner: {

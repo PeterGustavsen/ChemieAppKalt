@@ -74,7 +74,7 @@ export default function SceneShell({
       </View>
 
       {dialog && (
-        <PixelDialog speaker="Prof. Dr. Molar" lines={dialog.lines} onClose={() => setDialog(null)} />
+        <PixelDialog speaker="LAB-NOTIZ" lines={dialog.lines} onClose={() => setDialog(null)} />
       )}
       {hintOpen && (
         <PixelDialog speaker="Hinweis" lines={hintLines} onClose={() => setHintOpen(false)} />
