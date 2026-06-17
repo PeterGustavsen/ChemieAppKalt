@@ -118,12 +118,28 @@ def selective_outline(img, color=(13, 15, 23), alpha_thresh=40):
 
 
 def soft_shadow(img, cx, cy, rx, ry, alpha=90):
-    """Elliptischer Bodenschatten (mehrere Alpha-Ringe)."""
-    d = ImageDraw.Draw(img)
+    """Elliptischer Bodenschatten — korrekt alpha-kompositiert (nicht ersetzt)."""
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    dd = ImageDraw.Draw(layer)
     for i in range(3):
         a = int(alpha * (1 - i / 3))
-        d.ellipse([cx - rx + i * 2, cy - ry + i, cx + rx - i * 2, cy + ry - i],
-                  fill=(0, 0, 0, a))
+        dd.ellipse([cx - rx + i * 2, cy - ry + i, cx + rx - i * 2, cy + ry - i],
+                   fill=(0, 0, 0, a))
+    img.alpha_composite(layer)
+
+
+def blend_poly(img, points, color, alpha):
+    """Halbtransparentes Polygon korrekt ueber das Bild kompositieren."""
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(layer).polygon(points, fill=(color[0], color[1], color[2], alpha))
+    img.alpha_composite(layer)
+
+
+def blend_rect(img, x, y, w, h, color, alpha):
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(layer).rectangle([x, y, x + w - 1, y + h - 1],
+                                    fill=(color[0], color[1], color[2], alpha))
+    img.alpha_composite(layer)
 
 
 # ---- Sprite-Sheets ----------------------------------------------------

@@ -54,8 +54,8 @@ def draw_lamp(img, d):
     # Deckenlampe mittig oben -> Lichtkegel
     H.rect(d, W // 2 - 36, 0, 72, 8, STEEL[0])
     H.rect(d, W // 2 - 28, 8, 56, 6, GLOW[1])
-    d.polygon([(W // 2 - 28, 14), (W // 2 + 28, 14), (W // 2 + 70, 120),
-               (W // 2 - 70, 120)], fill=(*GLOW[1], 26))
+    H.blend_poly(img, [(W // 2 - 28, 14), (W // 2 + 28, 14),
+                       (W // 2 + 70, 120), (W // 2 - 70, 120)], GLOW[1], 26)
 
 
 def draw_poster(img, d):
