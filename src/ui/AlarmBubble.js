@@ -48,7 +48,7 @@ export default function AlarmBubble({ onDismiss }) {
     <Animated.View style={[styles.root, { transform: [{ translateY: slide }] }]}>
       <Pressable style={styles.inner} onPress={dismiss}>
         <View style={styles.iconCol}>
-          <Animated.Text style={[styles.icon, { opacity: blink }]}>🚨</Animated.Text>
+          <Animated.Text style={[styles.icon, { opacity: blink }]}>{'[!]'}</Animated.Text>
           <Text style={styles.src}>SYSTEM</Text>
         </View>
         <View style={styles.textCol}>
@@ -78,7 +78,10 @@ const styles = StyleSheet.create({
   iconCol: {
     alignItems: 'center', marginRight: 12, paddingTop: 2,
   },
-  icon: { fontSize: 22 },
+  icon: {
+    color: '#ff2010', fontFamily: 'monospace', fontWeight: 'bold',
+    fontSize: 18, letterSpacing: 0,
+  },
   src: {
     color: '#c01008', fontFamily: 'monospace', fontSize: 7,
     letterSpacing: 1, marginTop: 3,

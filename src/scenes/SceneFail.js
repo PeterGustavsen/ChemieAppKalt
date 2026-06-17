@@ -44,7 +44,7 @@ export default function SceneFail({ solvedIds, onRestart }) {
 
       {/* Fail overlay — no card, text directly on scene */}
       <View style={styles.topBanner}>
-        <Text style={styles.bannerIcon}>🚨</Text>
+        <Text style={styles.bannerIcon}>{'[!]'}</Text>
         <View>
           <Text style={styles.bannerTitle}>SICHERHEITSPROTOKOLL</Text>
           <Text style={styles.bannerSub}>PERMANENT AKTIVIERT — NOTABSCHALTUNG</Text>
@@ -96,7 +96,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2, borderColor: '#c01008',
     paddingHorizontal: 16, paddingVertical: 8,
   },
-  bannerIcon: { fontSize: 18, marginRight: 10 },
+  bannerIcon: {
+    color: '#ff2010', fontFamily: 'monospace', fontWeight: 'bold',
+    fontSize: 13, marginRight: 10,
+  },
   bannerTitle: {
     color: '#f06b6b', fontFamily: 'monospace', fontSize: 11,
     fontWeight: 'bold', letterSpacing: 2,

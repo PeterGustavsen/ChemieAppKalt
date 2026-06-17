@@ -40,7 +40,7 @@ export default function RadioCall({ lines, onDismiss }) {
         {/* Speech bubble */}
         <Pressable style={styles.bubble} onPress={advance}>
           <View style={styles.bubbleTail} />
-          <Text style={styles.caller}>📻  FUNK-EINGANG</Text>
+          <Text style={styles.caller}>{'>> FUNK-EINGANG'}</Text>
           <Text style={styles.line}>{lines[lineIdx]}</Text>
           <Text style={styles.next}>
             {lineIdx < lines.length - 1 ? '▶ WEITER' : '▶ OK'}
