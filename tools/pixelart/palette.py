@@ -1,68 +1,100 @@
 """
-CHEMISCHER ESCAPE ROOM — Master Palette
-32 colours, SNES/32-bit era lab atmosphere.
-Import this into every scene script; never use colours outside this list.
+============================================================
+ CHEMISCHER ESCAPE ROOM  —  Master-Palette
+============================================================
+Eine feste, von ALLEN Asset-Skripten importierte Palette.
+Stimmung: dichtes Chemielabor — Teal/Petrol-Waende, Holz/Messing,
+Glas-Cyan, Chemikalien-Akzente. Ramps (3-4 Stufen) sorgen fuer
+konsistentes Licht (Lichtquelle pro Szene oben-links).
+
+Aufloesung der Spiele-Assets: 640x360 ("high-res pixel art").
+Max. ~48 Farben. Siehe STYLE.md fuer Regeln.
+
+Benutzung:
+    from palette import PAL, RAMP
+    color = PAL["wall_3"]          # (r,g,b)
+    ramp  = RAMP["wall"]           # [dark -> light]
 """
 
-# ── Shadows / Near-black ──────────────────────────────────────────────────────
-VOID        = (0x08, 0x08, 0x10)   # absolute shadow, outlines
-SHADOW      = (0x14, 0x18, 0x28)   # deep shadow fill
-DARK_BLUE   = (0x1c, 0x24, 0x3c)   # wall shadow / BG dark
+# ---- Outlines / Tiefe -------------------------------------------------
+INK      = (13, 15, 23)      # fast-schwarze, selektive Outline
+INK_SOFT = (26, 30, 44)      # weiche Outline / tiefer Schatten
 
-# ── Walls (Petrol / Teal) ────────────────────────────────────────────────────
-WALL_DARK   = (0x1e, 0x3e, 0x4e)   # wall in shadow
-WALL_MID    = (0x2c, 0x54, 0x62)   # main wall surface
-WALL_LIGHT  = (0x3c, 0x6e, 0x7c)   # wall lit area
-WALL_BRIGHT = (0x52, 0x8e, 0x9c)   # wall highlight / specular
-TILE_GROUT  = (0x18, 0x30, 0x3c)   # grout lines between tiles
+# ---- Wand (Petrol/Teal), Lichtquelle oben-links -----------------------
+WALL = [(18, 47, 54), (32, 80, 90), (54, 116, 126)]
 
-# ── Floor / Bench (concrete + dark wood) ─────────────────────────────────────
-FLOOR_DARK  = (0x28, 0x24, 0x20)   # floor shadow
-FLOOR_MID   = (0x3c, 0x36, 0x2e)   # main floor colour
-FLOOR_LIGHT = (0x54, 0x4c, 0x40)   # floor highlight
-WOOD_DARK   = (0x3a, 0x26, 0x16)   # bench / shelving dark
-WOOD_MID    = (0x58, 0x3c, 0x22)   # bench surface
-WOOD_LIGHT  = (0x7a, 0x58, 0x34)   # bench highlight
+# ---- Boden (kuehles Grau-Blau) ----------------------------------------
+FLOOR = [(31, 35, 46), (45, 52, 67), (66, 76, 95)]
+GROUT = (22, 26, 35)
 
-# ── Metal / Brass ─────────────────────────────────────────────────────────────
-METAL_DARK  = (0x38, 0x38, 0x40)   # dark steel (clamps, stands)
-METAL_MID   = (0x58, 0x5c, 0x68)   # steel mid
-METAL_LIGHT = (0x88, 0x8c, 0x98)   # steel highlight
-BRASS_DARK  = (0x6a, 0x50, 0x18)   # brass / aged copper dark
-BRASS_MID   = (0xa8, 0x7c, 0x28)   # brass mid
-BRASS_LIGHT = (0xd4, 0xa8, 0x48)   # brass / amber light
+# ---- Holz (Laborbank, Tueren) -----------------------------------------
+WOOD = [(58, 38, 22), (96, 62, 34), (146, 96, 54)]
 
-# ── Glass / Liquid (Cyan family) ─────────────────────────────────────────────
-GLASS_DARK  = (0x14, 0x44, 0x58)   # dark glass / liquid shadow
-GLASS_MID   = (0x28, 0x80, 0xa0)   # glass body / water
-GLASS_LIGHT = (0x60, 0xb8, 0xd0)   # glass highlight / refraction
-GLASS_SHINE = (0xb8, 0xe8, 0xf0)   # specular glint
+# ---- Messing / Gold (Apparate, Beschlaege) ----------------------------
+BRASS = [(107, 79, 29), (164, 121, 38), (224, 180, 76)]
 
-# ── Chemical Accents ──────────────────────────────────────────────────────────
-ACID_DARK   = (0x28, 0x60, 0x08)   # acid green shadow
-ACID_MID    = (0x50, 0xa0, 0x10)   # acid green / indicator
-ACID_BRIGHT = (0x88, 0xd8, 0x28)   # bright acid reaction
-MAGENTA     = (0xa0, 0x10, 0x70)   # chemical magenta / titration
-AMBER       = (0xd8, 0x94, 0x10)   # warning amber / flame
+# ---- Stahl / Metall ---------------------------------------------------
+STEEL = [(45, 55, 72), (84, 96, 116), (140, 153, 172)]
 
-# ── UI / Text / Glow ──────────────────────────────────────────────────────────
-PHOSPHOR    = (0x18, 0xd8, 0x48)   # CRT terminal green glow
-TEXT_WHITE  = (0xe0, 0xe4, 0xd8)   # dialogue text
-TEXT_DIM    = (0x88, 0x98, 0x88)   # dimmed text / UI secondary
-PURE_WHITE  = (0xff, 0xff, 0xff)   # specular highlights only
+# ---- Glas (Cyan, halbtransparent wirkend) -----------------------------
+GLASS = [(31, 111, 122), (58, 163, 176), (111, 211, 221), (184, 240, 245)]
+GLASS_HI = (234, 252, 255)
 
-# ── Ordered list (for palette-enforcement / quantisation) ────────────────────
-ALL_COLORS = [
-    VOID, SHADOW, DARK_BLUE,
-    WALL_DARK, WALL_MID, WALL_LIGHT, WALL_BRIGHT, TILE_GROUT,
-    FLOOR_DARK, FLOOR_MID, FLOOR_LIGHT,
-    WOOD_DARK, WOOD_MID, WOOD_LIGHT,
-    METAL_DARK, METAL_MID, METAL_LIGHT,
-    BRASS_DARK, BRASS_MID, BRASS_LIGHT,
-    GLASS_DARK, GLASS_MID, GLASS_LIGHT, GLASS_SHINE,
-    ACID_DARK, ACID_MID, ACID_BRIGHT,
-    MAGENTA, AMBER,
-    PHOSPHOR, TEXT_WHITE, TEXT_DIM, PURE_WHITE,
-]
-# 33 entries — PURE_WHITE is the 33rd and reserved for glints only;
-# effective working palette is 32 named colours.
+# ---- Chemikalien / Fluessigkeiten -------------------------------------
+ACID  = [(46, 140, 74), (111, 224, 138)]   # Saeure / Indikator gruen
+BASE  = [(47, 111, 208), (91, 155, 240)]   # Base / Lauge blau
+PINK  = [(176, 58, 134), (227, 111, 176)]  # Phenolphthalein pink
+PURPLE= [(126, 72, 168)]                    # Universalindikator
+ORANGE= [(176, 84, 30), (240, 145, 58)]    # Methylorange / Flamme-Glut
+
+# ---- CRT-Terminal (Phosphor) ------------------------------------------
+CRT   = [(16, 48, 24), (47, 143, 58), (111, 232, 122)]  # gruenes Phosphor
+CRT_AMBER = (240, 178, 58)
+
+# ---- Licht / Lampen ---------------------------------------------------
+GLOW  = [(247, 224, 138), (255, 244, 194)]
+
+# ---- Prof. Dr. Molar --------------------------------------------------
+SKIN  = [(201, 138, 94), (230, 180, 138)]
+COAT  = [(176, 188, 204), (236, 242, 250)]  # Laborkittel (Schatten, Licht)
+HAIR  = [(138, 147, 164), (181, 189, 201)]                   # wirres Grau
+GLASSES = (26, 31, 43)
+
+# ---- UI / Status ------------------------------------------------------
+RED   = [(173, 53, 53), (240, 107, 107)]   # Alarm / Fehler
+GREEN_OK = (111, 232, 122)                 # geloest / korrekt
+WHITE = (244, 248, 255)
+SHADOW = (0, 0, 0)                          # nur mit Alpha (nicht in PAL gezaehlt)
+
+# ======================================================================
+#  Zugriffstabellen
+# ======================================================================
+RAMP = {
+    "wall": WALL, "floor": FLOOR, "wood": WOOD, "brass": BRASS,
+    "steel": STEEL, "glass": GLASS, "acid": ACID, "base": BASE,
+    "pink": PINK, "purple": PURPLE, "orange": ORANGE, "crt": CRT,
+    "glow": GLOW, "skin": SKIN, "coat": COAT, "hair": HAIR, "red": RED,
+}
+
+PAL = {"ink": INK, "ink_soft": INK_SOFT, "grout": GROUT, "glass_hi": GLASS_HI,
+       "crt_amber": CRT_AMBER, "glasses": GLASSES, "green_ok": GREEN_OK,
+       "white": WHITE}
+for _name, _ramp in RAMP.items():
+    for _i, _c in enumerate(_ramp):
+        PAL[f"{_name}_{_i}"] = _c
+
+
+def all_colors():
+    """Eindeutige Farben der Palette (zur Validierung der ~48-Grenze)."""
+    seen = []
+    for c in PAL.values():
+        if c not in seen:
+            seen.append(c)
+    return seen
+
+
+if __name__ == "__main__":
+    cols = all_colors()
+    print(f"Palette: {len(cols)} eindeutige Farben (Ziel <= ~48)")
+    assert len(cols) <= 50, "Palette zu gross!"
+    print("OK")
