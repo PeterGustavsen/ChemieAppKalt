@@ -157,7 +157,7 @@ export default function App() {
   // Emergency light activates as soon as alarm triggers (not only after dismissal)
   const emergencyLight = alarmPending || introDone;
 
-  if (isPhone && isPortrait) {
+  if (isPortrait) {
     return (
       <View style={styles.rotate}>
         <StatusBar hidden />

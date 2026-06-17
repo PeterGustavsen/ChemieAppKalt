@@ -1,12 +1,23 @@
-/*
- * Stage-Layout: rechnet das 640x360 Render-Feld per Integer-Scaling
- * (nearest-neighbor, scharfe Pixel) mittig auf den Bildschirm, Letterbox bei Bedarf.
- */
-import { useWindowDimensions } from 'react-native';
+import { useWindowDimensions, Platform } from 'react-native';
+import { useState, useEffect } from 'react';
 import { SCENE_W, SCENE_H } from '../config/game';
 
 export function useStageLayout() {
-  const { width, height } = useWindowDimensions();
+  const dims = useWindowDimensions();
+  const [vpHeight, setVpHeight] = useState(dims.height);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setVpHeight(vv.height);
+    vv.addEventListener('resize', update);
+    update();
+    return () => vv.removeEventListener('resize', update);
+  }, []);
+
+  const width = dims.width;
+  const height = Platform.OS === 'web' ? vpHeight : dims.height;
   const scale = Math.min(width / SCENE_W, height / SCENE_H);
   const stageW = SCENE_W * scale;
   const stageH = SCENE_H * scale;
