@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 import SceneStart from './src/scenes/SceneStart';
@@ -148,10 +148,25 @@ export default function App() {
     firedCallsRef.current = new Set();
   }, [flickerAnim, shakeAnim]);
 
+  const { width, height } = useWindowDimensions();
+  const isPortrait = height > width;
+  const isPhone = Math.min(width, height) < 600;
+
   const RoomComp = activeRoom ? ROOM_COMPONENTS[activeRoom.scene] : null;
   const danger = introDone && timeLeft <= 120;
   // Emergency light activates as soon as alarm triggers (not only after dismissal)
   const emergencyLight = alarmPending || introDone;
+
+  if (isPhone && isPortrait) {
+    return (
+      <View style={styles.rotate}>
+        <StatusBar hidden />
+        <Text style={styles.rotateIcon}>⟳</Text>
+        <Text style={styles.rotateTxt}>Gerät drehen</Text>
+        <Text style={styles.rotateSub}>Das Spiel läuft nur im Querformat</Text>
+      </View>
+    );
+  }
 
   if (gameState === 'win') {
     return (
@@ -219,6 +234,18 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0d0f17' },
+  rotate: {
+    flex: 1, backgroundColor: '#0d0f17',
+    alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  rotateIcon: { color: '#6fd3dd', fontSize: 48 },
+  rotateTxt: {
+    color: '#6fd3dd', fontFamily: 'monospace', fontSize: 18,
+    fontWeight: 'bold', letterSpacing: 2,
+  },
+  rotateSub: {
+    color: '#4a6070', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1,
+  },
   flicker: {
     position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
     backgroundColor: '#000',
