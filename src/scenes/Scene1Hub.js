@@ -46,8 +46,8 @@ export default function Scene1Hub({
     if (!emergencyLight) { redAnim.setValue(0); return; }
     if (loopRef.current) loopRef.current.stop();
     const dur = danger ? 350 : 1100;
-    const hi  = danger ? 0.45 : 0.22;
-    const lo  = danger ? 0.18 : 0.08;
+    const hi  = danger ? 0.65 : 0.40;
+    const lo  = danger ? 0.25 : 0.12;
     loopRef.current = Animated.loop(
       Animated.sequence([
         Animated.timing(redAnim, { toValue: hi, duration: dur, useNativeDriver: true }),
@@ -126,9 +126,12 @@ export default function Scene1Hub({
         </Group>
       </Canvas>
 
-      {/* Emergency red light — permanent after intro */}
+      {/* Emergency lighting: dark base (power cut) + pulsing red glow */}
       {emergencyLight && (
-        <Animated.View pointerEvents="none" style={[styles.alarmOverlay, { opacity: redAnim }]} />
+        <>
+          <View pointerEvents="none" style={styles.darkOverlay} />
+          <Animated.View pointerEvents="none" style={[styles.alarmOverlay, { opacity: redAnim }]} />
+        </>
       )}
 
       {!terminalOpen && (
@@ -201,9 +204,13 @@ function Hotspot({ layout, rectObj, color, onIn, onOut, onPress }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0d0f17' },
   hotspot: { position: 'absolute' },
+  darkOverlay: {
+    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+    backgroundColor: '#000000', opacity: 0.72,
+  },
   alarmOverlay: {
     position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-    backgroundColor: '#c0200a',
+    backgroundColor: '#c01008',
   },
   screen: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   screenTitle: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 9, letterSpacing: 1 },
