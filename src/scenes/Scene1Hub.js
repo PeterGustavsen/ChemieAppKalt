@@ -1,18 +1,7 @@
-/*
- * SZENE 1 — Molars Labor (interaktiver Hub).
- * Skia-Canvas (Hintergrund, animierter Molar, Tuer-LEDs, Hover/Klick-Glow)
- * + RN-Pressable-Hotspots + Dialog + Terminal.
- *
- * Interaktion:
- *   - Molar (Idle-Loop) begruesst per Dialog.
- *   - Tuer antippen: offene/aktuelle Kammer -> betreten; verriegelte -> Hinweis.
- *   - Terminal antippen: Code-Eingabe (Fortschritts-Mechanik).
- *   - Hotspots zeigen Press-Glow + "untersuchen"-Text.
- */
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import {
-  Canvas, Image as SkImage, Group, rect, Rect,
+  Canvas, Image as SkImage, Group, Rect,
   FilterMode, MipmapMode,
 } from '@shopify/react-native-skia';
 
@@ -22,28 +11,60 @@ import { useStageLayout } from '../engine/layout';
 import { useSpriteFrame } from '../engine/useSprite';
 import PixelDialog from '../ui/PixelDialog';
 import Terminal from '../ui/Terminal';
-import { ROOMS, TERMINAL, TERMINAL_SCREEN, INTRO_DIALOG, SCENE_W, SCENE_H } from '../config/game';
+import {
+  ROOMS, TERMINAL, TERMINAL_SCREEN,
+  INTRO_DIALOG, FAREWELL_DIALOG,
+  SCENE_W, SCENE_H,
+} from '../config/game';
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
 const MOLAR = { x: 70, y: 188, frameW: 72, frameH: 112, scale: 1.45, frames: 8 };
 
-export default function Scene1Hub({ solvedIds, onSubmitCode, onEnterRoom }) {
+const fmtTime = (s) =>
+  `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+export default function Scene1Hub({
+  solvedIds, onSubmitCode, onEnterRoom,
+  introDone, onIntroDone, timeLeft, danger, emergencyLight,
+}) {
   const L = useStageLayout();
   const bg = usePixelImage(require('../../assets/scenes/scene_01_lab_hub.png'));
   const molar = usePixelImage(require('../../assets/sprites/molar_idle.png'));
 
-  const [dialog, setDialog] = useState({ speaker: 'Prof. Dr. Molar', lines: INTRO_DIALOG });
+  const [dialog, setDialog] = useState(
+    introDone ? null : { speaker: 'Prof. Dr. Molar', lines: INTRO_DIALOG }
+  );
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [pressed, setPressed] = useState(null);
-  const blink = useSpriteFrame(2, 1.6); // Attract-Blink fuer die aktuelle Kammer
+  const blink = useSpriteFrame(2, 1.6);
+
+  // Emergency red overlay — slow pulse normally, fast pulse when < 2 min
+  const redAnim = useRef(new Animated.Value(0)).current;
+  const loopRef = useRef(null);
+
+  useEffect(() => {
+    if (!emergencyLight) { redAnim.setValue(0); return; }
+    if (loopRef.current) loopRef.current.stop();
+    const dur = danger ? 350 : 1100;
+    const hi  = danger ? 0.45 : 0.22;
+    const lo  = danger ? 0.18 : 0.08;
+    loopRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(redAnim, { toValue: hi, duration: dur, useNativeDriver: true }),
+        Animated.timing(redAnim, { toValue: lo, duration: dur, useNativeDriver: true }),
+      ])
+    );
+    loopRef.current.start();
+    return () => { if (loopRef.current) loopRef.current.stop(); };
+  }, [emergencyLight, danger]);
 
   const target = ROOMS.find((r) => !solvedIds.includes(r.id)) || null;
   const busy = !!dialog || terminalOpen;
 
   const ledColor = (room) => {
-    if (solvedIds.includes(room.id)) return '#6fe87a';      // geloest
-    if (target && room.id === target.id) return '#f0b23a';  // offen / aktuell
-    return '#ad3535';                                       // verriegelt
+    if (solvedIds.includes(room.id)) return '#6fe87a';
+    if (target && room.id === target.id) return '#f0b23a';
+    return '#ad3535';
   };
 
   const onDoor = (room) => {
@@ -60,6 +81,19 @@ export default function Scene1Hub({ solvedIds, onSubmitCode, onEnterRoom }) {
     }
   };
 
+  const handleDialogClose = () => {
+    if (!introDone && dialog && dialog.lines === INTRO_DIALOG) {
+      setDialog({ speaker: 'Prof. Dr. Molar', lines: FAREWELL_DIALOG });
+    } else if (!introDone && dialog && dialog.lines === FAREWELL_DIALOG) {
+      setDialog(null);
+      onIntroDone();
+    } else {
+      setDialog(null);
+    }
+  };
+
+  const timerColor = danger ? '#f06b6b' : '#6fe87a';
+
   return (
     <View style={styles.root}>
       <Canvas style={{ flex: 1 }}>
@@ -68,13 +102,13 @@ export default function Scene1Hub({ solvedIds, onSubmitCode, onEnterRoom }) {
             <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />
           )}
 
-          {/* animierter Professor */}
-          <AnimatedSprite
-            image={molar} frameCount={MOLAR.frames} frameW={MOLAR.frameW} frameH={MOLAR.frameH}
-            x={MOLAR.x} y={MOLAR.y} scale={MOLAR.scale} fps={7}
-          />
+          {!introDone && (
+            <AnimatedSprite
+              image={molar} frameCount={MOLAR.frames} frameW={MOLAR.frameW} frameH={MOLAR.frameH}
+              x={MOLAR.x} y={MOLAR.y} scale={MOLAR.scale} fps={7}
+            />
+          )}
 
-          {/* Tuer-Status-LEDs (ueber dem gemalten Sockel) */}
           {ROOMS.map((r) => (
             <Group key={`led-${r.id}`}>
               <Rect x={r.rect.x + 10} y={r.rect.y + r.rect.h - 14} width={8} height={8} color={ledColor(r)} />
@@ -82,7 +116,6 @@ export default function Scene1Hub({ solvedIds, onSubmitCode, onEnterRoom }) {
             </Group>
           ))}
 
-          {/* Glow: aktuelle Kammer blinkt dezent; gedrueckter Hotspot leuchtet */}
           {!busy && target && blink === 0 && (
             <Rect x={target.rect.x - 1} y={target.rect.y - 1} width={target.rect.w + 2} height={target.rect.h + 2}
               color="#f0b23a" style="stroke" strokeWidth={2} />
@@ -93,17 +126,24 @@ export default function Scene1Hub({ solvedIds, onSubmitCode, onEnterRoom }) {
         </Group>
       </Canvas>
 
-      {/* CRT-Screen-Text (idle) */}
+      {/* Emergency red light — permanent after intro */}
+      {emergencyLight && (
+        <Animated.View pointerEvents="none" style={[styles.alarmOverlay, { opacity: redAnim }]} />
+      )}
+
       {!terminalOpen && (
         <View pointerEvents="none" style={[styles.screen, L.toScreen(TERMINAL_SCREEN)]}>
           <Text style={styles.screenTitle}>SICHERHEITS-</Text>
           <Text style={styles.screenTitle}>TERMINAL v7</Text>
           <Text style={styles.screenCodes}>CODES {solvedIds.length}/4</Text>
-          <Text style={styles.screenHint}>{'>'} TIPPEN</Text>
+          {introDone && timeLeft !== null ? (
+            <Text style={[styles.screenTimer, { color: timerColor }]}>{fmtTime(timeLeft)}</Text>
+          ) : (
+            <Text style={styles.screenHint}>{'>'} TIPPEN</Text>
+          )}
         </View>
       )}
 
-      {/* Hotspots (nur wenn nichts offen) */}
       {!busy && (
         <>
           <Hotspot layout={L} rectObj={TERMINAL} color="#6fe87a"
@@ -119,12 +159,10 @@ export default function Scene1Hub({ solvedIds, onSubmitCode, onEnterRoom }) {
         </>
       )}
 
-      {/* Dialog */}
       {dialog && (
-        <PixelDialog speaker={dialog.speaker} lines={dialog.lines} onClose={() => setDialog(null)} />
+        <PixelDialog speaker={dialog.speaker} lines={dialog.lines} onClose={handleDialogClose} />
       )}
 
-      {/* Terminal */}
       {terminalOpen && (
         <Terminal
           rooms={ROOMS}
@@ -163,8 +201,13 @@ function Hotspot({ layout, rectObj, color, onIn, onOut, onPress }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0d0f17' },
   hotspot: { position: 'absolute' },
+  alarmOverlay: {
+    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+    backgroundColor: '#c0200a',
+  },
   screen: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   screenTitle: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 9, letterSpacing: 1 },
   screenCodes: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 11, marginTop: 6, fontWeight: 'bold' },
   screenHint: { color: '#2f8f3a', fontFamily: 'monospace', fontSize: 9, marginTop: 8 },
+  screenTimer: { fontFamily: 'monospace', fontSize: 15, marginTop: 6, fontWeight: 'bold', letterSpacing: 2 },
 });

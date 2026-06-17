@@ -123,11 +123,19 @@ export const PUZZLES = {
   },
 };
 
-// Molar-Eroeffnungsdialog (JRPG-Stil, Typewriter)
+export const TIMER_SECONDS = 20 * 60; // 20 Minuten
+
+// Molar-Eroeffnungsdialog
 export const INTRO_DIALOG = [
-  'Willkommen in meinem Labor! Ich bin Prof. Dr. Molar.',
-  'Die Tuer hat sich verriegelt — Sicherheitsprotokoll. Vier Kammern, vier Codes.',
-  'In jeder Kammer loest du ein chemisches Raetsel. Es verraet dir einen Code.',
-  'Diesen Code gibst du hier am Terminal in der Mitte ein.',
-  'Stimmt der Code, entriegelt sich die naechste Kammer. Tippe eine Kammer an!',
+  'Willkommen! Ich bin Prof. Dr. Molar — aber wir haben ein PROBLEM.',
+  'Die Kuehlanlage fuer die explosiven Reagenzien ist ausgefallen!',
+  'In 20 Minuten erreichen die Substanzen die kritische Temperatur.',
+  'Vier Kammern, vier Codes. Loese die Raetsel und gib die Codes hier ein.',
+  'Das entriegelt den Sicherheitsverschluss — dann kannst du fliehen!',
+];
+
+// Abschied — Molar verlässt das Labor, Notstrom springt an
+export const FAREWELL_DIALOG = [
+  'Der Notstromgenerator! Ich muss sofort in den Keller — du bist allein!',
+  'Vertrau der Chemie. Beeile dich. Viel Glueck!',
 ];

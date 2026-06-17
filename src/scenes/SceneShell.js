@@ -6,8 +6,8 @@
  * Die eigentliche Interaktion (das Raetsel) kommt aus renderScene()/renderOverlay()
  * der jeweiligen Szene — hier nur Huelle & Flow.
  */
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import {
   Canvas, Image as SkImage, Group, FilterMode, MipmapMode,
 } from '@shopify/react-native-skia';
@@ -21,7 +21,7 @@ const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
 
 export default function SceneShell({
   room, bgSource, introLines, hintLines, solved, solvedLines,
-  onBack, renderScene, renderOverlay,
+  onBack, renderScene, renderOverlay, emergencyLight, danger,
 }) {
   const L = useStageLayout();
   const bg = usePixelImage(bgSource);
@@ -29,6 +29,24 @@ export default function SceneShell({
   const [hintOpen, setHintOpen] = useState(false);
 
   const busy = !!dialog || hintOpen || solved;
+
+  const redAnim = useRef(new Animated.Value(0)).current;
+  const loopRef = useRef(null);
+  useEffect(() => {
+    if (!emergencyLight) { redAnim.setValue(0); return; }
+    if (loopRef.current) loopRef.current.stop();
+    const dur = danger ? 350 : 1100;
+    const hi  = danger ? 0.45 : 0.22;
+    const lo  = danger ? 0.18 : 0.08;
+    loopRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(redAnim, { toValue: hi, duration: dur, useNativeDriver: true }),
+        Animated.timing(redAnim, { toValue: lo, duration: dur, useNativeDriver: true }),
+      ])
+    );
+    loopRef.current.start();
+    return () => { if (loopRef.current) loopRef.current.stop(); };
+  }, [emergencyLight, danger]);
 
   return (
     <View style={styles.root}>
@@ -41,6 +59,11 @@ export default function SceneShell({
 
       {/* Szenen-Overlay (Steuerung) */}
       {renderOverlay && renderOverlay(L, { busy })}
+
+      {/* Emergency red light */}
+      {emergencyLight && (
+        <Animated.View pointerEvents="none" style={[styles.alarmOverlay, { opacity: redAnim }]} />
+      )}
 
       {/* Topbar */}
       <View style={styles.topbar} pointerEvents="box-none">
@@ -83,6 +106,7 @@ export default function SceneShell({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0d0f17' },
+  alarmOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#c0200a' },
   topbar: {
     position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row',
     justifyContent: 'space-between', alignItems: 'center', padding: 10,

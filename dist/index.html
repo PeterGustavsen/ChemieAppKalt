@@ -5,45 +5,27 @@
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>Chemie Escape Room</title>
-    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
-      /* These styles make the body full-height */
-      html,
-      body {
-        height: 100%;
-      }
-      /* These styles disable body scrolling if you are using <ScrollView> */
-      body {
-        overflow: hidden;
-      }
-      /* These styles make the root element full-height */
-      #root {
-        display: flex;
-        height: 100%;
-        flex: 1;
-      }
+      html, body { height: 100%; }
+      body { overflow: hidden; }
+      #root { display: flex; height: 100%; flex: 1; }
     </style>
   </head>
-
   <body>
-    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
-    <!-- The root element for your Expo app. -->
+    <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-  <script src="/canvaskit.js"></script>
-  <script>
-    window.__skiaReady = CanvasKitInit({
-      locateFile: function(f) { return '/_expo/static/js/web/' + f; },
-    }).then(function(ck) { window.CanvasKit = ck; });
-  </script>
-  <script>
-    window.__skiaReady.then(function() {
-      var s = document.createElement('script');
-      s.src = '/_expo/static/js/web/index-7674bbdc8b8dcc6af1a92022faf3783c.js';
-      document.body.appendChild(s);
-    });
-  </script>
-</body>
+    <script src="/canvaskit.js"></script>
+    <script>
+      window.__skiaReady = CanvasKitInit({
+        locateFile: function(f) { return '/_expo/static/js/web/' + f; },
+      }).then(function(ck) { window.CanvasKit = ck; });
+    </script>
+    <script>
+      window.__skiaReady.then(function() {
+        var s = document.createElement('script');
+        s.src = '/_expo/static/js/web/index-7786001ed679a536bb4b99c861697b62.js';
+        document.body.appendChild(s);
+      });
+    </script>
+  </body>
 </html>

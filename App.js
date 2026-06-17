@@ -1,17 +1,5 @@
-/*
- * ============================================================
- * CHEMISCHER ESCAPE ROOM — Point-and-Click Adventure
- * ============================================================
- * Renderer: react-native-skia (640x360, nearest-neighbor, integer-scaled).
- *
- * State-Machine:  'scene1' (Hub + Terminal)  <->  'room' (Raetselkammer 2-5)
- *
- * Loop: in jeder Kammer wird ein Code per Interaktion erspielt -> am Haupt-
- * Terminal in Szene 1 eingetragen -> naechste Kammer entriegelt. Das Terminal
- * ist nur die Fortschritts-Klammer, nicht das Raetsel.
- */
-import React, { useState, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 import Scene1Hub from './src/scenes/Scene1Hub';
@@ -19,15 +7,44 @@ import Scene2Titration from './src/scenes/Scene2Titration';
 import Scene3Stoich from './src/scenes/Scene3Stoich';
 import Scene4Periodic from './src/scenes/Scene4Periodic';
 import Scene5Organik from './src/scenes/Scene5Organik';
-import { ROOMS } from './src/config/game';
+import SceneEnd from './src/scenes/SceneEnd';
+import { ROOMS, TIMER_SECONDS } from './src/config/game';
 
 const ROOM_COMPONENTS = { 2: Scene2Titration, 3: Scene3Stoich, 4: Scene4Periodic, 5: Scene5Organik };
 
 export default function App() {
-  const [screen, setScreen] = useState('scene1');   // 'scene1' | 'room'
+  const [screen, setScreen] = useState('scene1');
   const [activeRoom, setActiveRoom] = useState(null);
-  const [solvedIds, setSolvedIds] = useState([]);    // am Terminal bestaetigt
-  const [revealedIds, setRevealedIds] = useState([]); // Raetsel im Raum geloest
+  const [solvedIds, setSolvedIds] = useState([]);
+  const [revealedIds, setRevealedIds] = useState([]);
+  const [introDone, setIntroDone] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
+  const [gameState, setGameState] = useState('playing');
+  const startTimeRef = useRef(null);
+
+  // Flicker overlay: fires once when Molar leaves, then fades to dim red
+  const flickerAnim = useRef(new Animated.Value(0)).current;
+  const [flickerDone, setFlickerDone] = useState(false);
+
+  // Countdown — starts after intro
+  useEffect(() => {
+    if (!introDone || gameState !== 'playing') return;
+    if (startTimeRef.current === null) startTimeRef.current = Date.now();
+    if (timeLeft <= 0) { setGameState('fail'); return; }
+    const id = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
+    return () => clearInterval(id);
+  }, [introDone, timeLeft, gameState]);
+
+  // Win detection
+  useEffect(() => {
+    if (gameState === 'playing' && solvedIds.length === ROOMS.length) {
+      setGameState('win');
+    }
+  }, [solvedIds, gameState]);
+
+  const elapsed = startTimeRef.current
+    ? Math.round((Date.now() - startTimeRef.current) / 1000)
+    : 0;
 
   const target = ROOMS.find((r) => !solvedIds.includes(r.id)) || null;
 
@@ -48,13 +65,65 @@ export default function App() {
   const onBack = useCallback(() => { setScreen('scene1'); setActiveRoom(null); }, []);
   const onReveal = useCallback((id) => setRevealedIds((r) => (r.includes(id) ? r : [...r, id])), []);
 
+  const onIntroDone = useCallback(() => {
+    setIntroDone(true);
+    // Power cut flicker → emergency red
+    flickerAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(flickerAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
+      Animated.timing(flickerAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+      Animated.timing(flickerAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+      Animated.timing(flickerAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+      Animated.timing(flickerAnim, { toValue: 0.9, duration: 80, useNativeDriver: true }),
+      Animated.timing(flickerAnim, { toValue: 0, duration: 70, useNativeDriver: true }),
+    ]).start(() => setFlickerDone(true));
+  }, [flickerAnim]);
+
+  const onRestart = useCallback(() => {
+    setSolvedIds([]);
+    setRevealedIds([]);
+    setIntroDone(false);
+    setTimeLeft(TIMER_SECONDS);
+    setGameState('playing');
+    setScreen('scene1');
+    setActiveRoom(null);
+    setFlickerDone(false);
+    flickerAnim.setValue(0);
+    startTimeRef.current = null;
+  }, [flickerAnim]);
+
   const RoomComp = activeRoom ? ROOM_COMPONENTS[activeRoom.scene] : null;
+  const danger = introDone && timeLeft <= 120;
+
+  if (gameState !== 'playing') {
+    return (
+      <View style={styles.container}>
+        <StatusBar hidden />
+        <SceneEnd
+          type={gameState}
+          solvedIds={solvedIds}
+          timeLeft={timeLeft}
+          elapsed={elapsed}
+          onRestart={onRestart}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar hidden />
       {screen === 'scene1' && (
-        <Scene1Hub solvedIds={solvedIds} onSubmitCode={onSubmitCode} onEnterRoom={onEnterRoom} />
+        <Scene1Hub
+          solvedIds={solvedIds}
+          onSubmitCode={onSubmitCode}
+          onEnterRoom={onEnterRoom}
+          introDone={introDone}
+          onIntroDone={onIntroDone}
+          timeLeft={introDone ? timeLeft : null}
+          danger={danger}
+          emergencyLight={flickerDone}
+        />
       )}
       {screen === 'room' && RoomComp && (
         <RoomComp
@@ -62,12 +131,23 @@ export default function App() {
           onBack={onBack}
           onReveal={onReveal}
           initiallySolved={revealedIds.includes(activeRoom.id)}
+          emergencyLight={introDone}
+          danger={danger}
         />
       )}
+
+      {/* One-shot power-cut flicker — black screen flash */}
+      {!introDone || !flickerDone ? (
+        <Animated.View pointerEvents="none" style={[styles.flicker, { opacity: flickerAnim }]} />
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0d0f17' },
+  flicker: {
+    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+    backgroundColor: '#000',
+  },
 });

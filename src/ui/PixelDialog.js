@@ -12,6 +12,9 @@ export default function PixelDialog({ speaker, lines, onClose }) {
   const iRef = useRef(0);
   const timer = useRef(null);
 
+  // Reset to first line whenever the line set changes
+  useEffect(() => { setIdx(0); }, [lines]);
+
   const text = lines[idx] || '';
 
   useEffect(() => {
