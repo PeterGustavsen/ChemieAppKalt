@@ -36,7 +36,7 @@ export default function Scene1Hub({
   const molar = usePixelImage(require('../../assets/sprites/molar_idle.png'));
 
   const [dialog, setDialog] = useState(
-    introDone ? null : { speaker: 'Prof. Dr. Molar', lines: INTRO_DIALOG }
+    (introDone || alarmPending) ? null : { speaker: 'Prof. Dr. Molar', lines: INTRO_DIALOG }
   );
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [pressed, setPressed] = useState(null);
@@ -45,7 +45,7 @@ export default function Scene1Hub({
   // ── Molar walk-out ──────────────────────────────────────────────────────────
   const [molarX, setMolarX] = useState(MOLAR.x);
   const [molarLeaving, setMolarLeaving] = useState(false);
-  const [molarGone, setMolarGone] = useState(introDone);
+  const [molarGone, setMolarGone] = useState(introDone || alarmPending);
   const onIntroRef = useRef(onIntroDone);
   onIntroRef.current = onIntroDone;
 
