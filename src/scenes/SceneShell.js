@@ -9,10 +9,11 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import {
-  Canvas, Image as SkImage, useImage, Group, FilterMode, MipmapMode,
+  Canvas, Image as SkImage, Group, FilterMode, MipmapMode,
 } from '@shopify/react-native-skia';
 
 import { useStageLayout } from '../engine/layout';
+import { usePixelImage } from '../engine/usePixelImage';
 import PixelDialog from '../ui/PixelDialog';
 import { SCENE_W, SCENE_H } from '../config/game';
 
@@ -23,7 +24,7 @@ export default function SceneShell({
   onBack, renderScene, renderOverlay,
 }) {
   const L = useStageLayout();
-  const bg = useImage(bgSource);
+  const bg = usePixelImage(bgSource);
   const [dialog, setDialog] = useState(introLines ? { lines: introLines } : null);
   const [hintOpen, setHintOpen] = useState(false);
 

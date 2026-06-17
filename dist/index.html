@@ -26,26 +26,24 @@
   </head>
 
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
     <div id="root"></div>
-    <!-- Load CanvasKit (Skia WASM) synchronously BEFORE the main bundle.
-         The main bundle's Skia.web.js reads global.CanvasKit at module-eval time,
-         so CanvasKit must be fully initialised first. -->
-    <script src="/canvaskit.js"></script>
-    <script>
-      // CanvasKitInit is now defined by canvaskit.js above.
-      // We block the main bundle with a tiny loader script.
-      window.__skiaReady = CanvasKitInit({
-        locateFile: (f) => '/_expo/static/js/web/' + f,
-      }).then((ck) => { window.CanvasKit = ck; });
-    </script>
-    <script>
-      // Defer the main bundle until Skia WASM resolves.
-      window.__skiaReady.then(() => {
-        const s = document.createElement('script');
-        s.src = '/_expo/static/js/web/index-2a229ee17b59f16fc143941d37986af1.js';
-        document.body.appendChild(s);
-      });
-    </script>
-  </body>
+  <script src="/canvaskit.js"></script>
+  <script>
+    window.__skiaReady = CanvasKitInit({
+      locateFile: function(f) { return '/_expo/static/js/web/' + f; },
+    }).then(function(ck) { window.CanvasKit = ck; });
+  </script>
+  <script>
+    window.__skiaReady.then(function() {
+      var s = document.createElement('script');
+      s.src = '/_expo/static/js/web/index-7674bbdc8b8dcc6af1a92022faf3783c.js';
+      document.body.appendChild(s);
+    });
+  </script>
+</body>
 </html>

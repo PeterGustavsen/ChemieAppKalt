@@ -12,11 +12,12 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import {
-  Canvas, Image as SkImage, useImage, Group, rect, Rect,
+  Canvas, Image as SkImage, Group, rect, Rect,
   FilterMode, MipmapMode,
 } from '@shopify/react-native-skia';
 
 import AnimatedSprite from '../engine/AnimatedSprite';
+import { usePixelImage } from '../engine/usePixelImage';
 import { useStageLayout } from '../engine/layout';
 import { useSpriteFrame } from '../engine/useSprite';
 import PixelDialog from '../ui/PixelDialog';
@@ -28,8 +29,8 @@ const MOLAR = { x: 70, y: 188, frameW: 72, frameH: 112, scale: 1.45, frames: 8 }
 
 export default function Scene1Hub({ solvedIds, onSubmitCode, onEnterRoom }) {
   const L = useStageLayout();
-  const bg = useImage(require('../../assets/scenes/scene_01_lab_hub.png'));
-  const molar = useImage(require('../../assets/sprites/molar_idle.png'));
+  const bg = usePixelImage(require('../../assets/scenes/scene_01_lab_hub.png'));
+  const molar = usePixelImage(require('../../assets/sprites/molar_idle.png'));
 
   const [dialog, setDialog] = useState({ speaker: 'Prof. Dr. Molar', lines: INTRO_DIALOG });
   const [terminalOpen, setTerminalOpen] = useState(false);
