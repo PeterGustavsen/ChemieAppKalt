@@ -28,7 +28,6 @@ const WALK_SPEED = 7;
 const WIN = { x: 205, y: 14, w: 230, h: 94 };
 const SHUTTER_TOP = WIN.y - WIN.h - 8;
 const SHUTTER_BOT = WIN.y - 1;
-const STICKER = { x: WIN.x + WIN.w / 2 - 44, dy: 38, w: 88, h: 22 };
 
 const fmtTime = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -212,25 +211,6 @@ export default function Scene1Hub({
           {[[-5,-5],[WIN.w-1,-5],[-5,WIN.h-1],[WIN.w-1,WIN.h-1]].map(([dx,dy],i) => (
             <Rect key={i} x={WIN.x+dx} y={WIN.y+dy} width={6} height={6} color="#6a8090" />
           ))}
-          {/* Metal shutter — slides down into frame when alarm triggers */}
-          <Group clip={{ x: WIN.x - 6, y: WIN.y - 6, width: WIN.w + 12, height: WIN.h + 12 }}>
-            <Rect x={WIN.x - 6} y={shutterY} width={WIN.w + 12} height={WIN.h + 14} color="#5c5c5c" />
-            {[...Array(10)].map((_, i) => (
-              <Rect key={i} x={WIN.x - 6} y={shutterY + i * 11} width={WIN.w + 12} height={2} color="#484848" />
-            ))}
-            {/* Leading edge highlight */}
-            <Rect x={WIN.x - 6} y={shutterY + WIN.h + 10} width={WIN.w + 12} height={4} color="#8a8a8a" />
-            {/* GEFAHR sticker — faded yellow, worn */}
-            <Rect x={STICKER.x} y={shutterY + STICKER.dy} width={STICKER.w} height={STICKER.h}
-              color="rgba(208,182,58,0.58)" />
-            <Rect x={STICKER.x + 4} y={shutterY + STICKER.dy + 3} width={STICKER.w - 22} height={STICKER.h - 10}
-              color="rgba(240,225,140,0.22)" />
-            <Rect x={STICKER.x + 35} y={shutterY + STICKER.dy + 6} width={STICKER.w - 44} height={STICKER.h - 14}
-              color="rgba(240,225,140,0.18)" />
-            <Rect x={STICKER.x} y={shutterY + STICKER.dy} width={STICKER.w} height={STICKER.h}
-              color="rgba(160,130,20,0.45)" style="stroke" strokeWidth={1.5} />
-          </Group>
-
           {/* Emergency lighting */}
           {emergencyLight && (
             <Group>
@@ -254,6 +234,19 @@ export default function Scene1Hub({
               )}
             </Group>
           )}
+
+          {/* Metal shutter — above emergency overlay so it stays visible in red light */}
+          <Group clip={{ x: WIN.x - 6, y: WIN.y - 6, width: WIN.w + 12, height: WIN.h + 12 }}>
+            <Rect x={WIN.x - 6} y={shutterY} width={WIN.w + 12} height={WIN.h + 14} color="#3e3e3e" />
+            {[...Array(10)].map((_, i) => (
+              <Rect key={i} x={WIN.x - 6} y={shutterY + i * 11} width={WIN.w + 12} height={2} color="#2e2e2e" />
+            ))}
+            {/* Leading edge highlight */}
+            <Rect x={WIN.x - 6} y={shutterY + WIN.h + 10} width={WIN.w + 12} height={4} color="#606060" />
+            {/* Red emergency tint — makes shutter look lit by alarm lamp */}
+            <Rect x={WIN.x - 6} y={shutterY} width={WIN.w + 12} height={WIN.h + 14}
+              color="rgba(180,30,0,0.18)" />
+          </Group>
 
           {/* Molar — with bob animation while talking */}
           {!molarGone && (
@@ -280,22 +273,7 @@ export default function Scene1Hub({
         </Group>
       </Canvas>
 
-      {/* GEFAHR sticker text — tracks shutter position */}
-      {shutterY > SHUTTER_TOP + 5 && (
-        <View pointerEvents="none" style={{
-          position: 'absolute',
-          left: L.offsetX + STICKER.x * L.scale,
-          top: L.offsetY + (shutterY + STICKER.dy) * L.scale,
-          width: STICKER.w * L.scale,
-          height: STICKER.h * L.scale,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Text style={[styles.gefahr, { fontSize: Math.max(7, 8 * L.scale) }]}>GEFAHR</Text>
-        </View>
-      )}
-
-      {!terminalOpen && (
+{!terminalOpen && (
         <View pointerEvents="none" style={[styles.screen, L.toScreen(TERMINAL_SCREEN)]}>
           {!emergencyLight ? (
             <>
@@ -389,7 +367,6 @@ const styles = StyleSheet.create({
   screenHint: { color: '#2f8f3a', fontFamily: 'monospace', fontSize: 11, marginTop: 6 },
   screenTimer: { fontFamily: 'monospace', fontSize: 18, marginTop: 4, fontWeight: 'bold', letterSpacing: 2 },
   screenSub: { color: '#5abf68', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1 },
-  gefahr: { color: 'rgba(60,38,5,0.82)', fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: 3 },
   screenAlarm: { color: '#ff3010', fontFamily: 'monospace', fontSize: 17, fontWeight: 'bold', letterSpacing: 2 },
   screenAlarmSub: { color: '#cc2010', fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', letterSpacing: 2 },
 });
