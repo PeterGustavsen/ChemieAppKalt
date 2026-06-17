@@ -195,8 +195,7 @@ export default function Scene1Hub({
         <View pointerEvents="none" style={[styles.screen, L.toScreen(TERMINAL_SCREEN)]}>
           {!emergencyLight ? (
             <>
-              <Text style={styles.screenBig}>CHEM.</Text>
-              <Text style={styles.screenBig}>LABS</Text>
+              <Text style={styles.screenBig}>CHEM. LABS</Text>
               <Text style={styles.screenSub}>MUENCHEN</Text>
               <Text style={styles.screenSub}>STATUS: OK</Text>
             </>
