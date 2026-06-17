@@ -3,11 +3,10 @@
     "name": "Chemie Escape Room",
     "slug": "chemie-escape-room",
     "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "orientation": "landscape",
     "userInterfaceStyle": "dark",
     "splash": {
-      "backgroundColor": "#1a2332"
+      "backgroundColor": "#0d0f17"
     },
     "ios": {
       "supportsTablet": true
