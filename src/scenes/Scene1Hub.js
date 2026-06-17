@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import {
-  Canvas, Image as SkImage, Group, Rect, RadialGradient,
+  Canvas, Image as SkImage, Group, Rect, RadialGradient, LinearGradient,
   FilterMode, MipmapMode,
 } from '@shopify/react-native-skia';
 
@@ -23,6 +23,11 @@ const LAMP_MAIN = { x: SCENE_W / 2, y: 8 };       // ceiling centre lamp
 const LAMP_TASKS = { x: 534, y: 8 };               // second lamp centred above task boxes
 const MOLAR_EXIT_X = -200;
 const WALK_SPEED = 7;
+
+// Window behind the PC
+const WIN = { x: 168, y: 14, w: 220, h: 94 };
+const SHUTTER_TOP = WIN.y - WIN.h - 8;
+const SHUTTER_BOT = WIN.y - 1;
 
 const fmtTime = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -105,6 +110,21 @@ export default function Scene1Hub({
     return () => clearTimeout(taskTimerRef.current);
   }, [emergencyLight]);
 
+  // ── Metal shutter over window ────────────────────────────────────────────────
+  const alreadyClosed = introDone || alarmPending;
+  const [shutterY, setShutterY] = useState(alreadyClosed ? SHUTTER_BOT : SHUTTER_TOP);
+  const [shutterDone, setShutterDone] = useState(alreadyClosed);
+  useEffect(() => {
+    if (!emergencyLight || shutterDone) return;
+    let y = SHUTTER_TOP;
+    const id = setInterval(() => {
+      y += 5;
+      if (y >= SHUTTER_BOT) { clearInterval(id); setShutterY(SHUTTER_BOT); setShutterDone(true); }
+      else setShutterY(y);
+    }, 32);
+    return () => clearInterval(id);
+  }, [emergencyLight, shutterDone]);
+
   const target = ROOMS.find((r) => !solvedIds.includes(r.id)) || null;
   const busy = !!dialog || terminalOpen || molarLeaving;
 
@@ -148,6 +168,49 @@ export default function Scene1Hub({
           {bg && (
             <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />
           )}
+
+          {/* ── Window behind PC ── */}
+          <Group clip={{ x: WIN.x, y: WIN.y, width: WIN.w, height: WIN.h }}>
+            {/* Sky */}
+            <Rect x={WIN.x} y={WIN.y} width={WIN.w} height={WIN.h}>
+              <LinearGradient
+                start={{ x: WIN.x, y: WIN.y }} end={{ x: WIN.x, y: WIN.y + WIN.h }}
+                colors={['#b8e0f7', '#6aaed6']}
+              />
+            </Rect>
+            {/* Clouds */}
+            <Rect x={WIN.x + 8}   y={WIN.y + 10} width={52} height={14} color="rgba(255,255,255,0.82)" />
+            <Rect x={WIN.x + 18}  y={WIN.y + 5}  width={38} height={12} color="rgba(255,255,255,0.65)" />
+            <Rect x={WIN.x + 130} y={WIN.y + 14} width={60} height={16} color="rgba(255,255,255,0.78)" />
+            <Rect x={WIN.x + 142} y={WIN.y + 8}  width={42} height={12} color="rgba(255,255,255,0.60)" />
+            {/* Industrial silhouettes */}
+            <Rect x={WIN.x + 10}  y={WIN.y + 58} width={28} height={36} color="#3a4d58" />
+            <Rect x={WIN.x + 20}  y={WIN.y + 42} width={8}  height={16} color="#3a4d58" />
+            <Rect x={WIN.x + 45}  y={WIN.y + 48} width={38} height={46} color="#2d3f4a" />
+            <Rect x={WIN.x + 52}  y={WIN.y + 32} width={7}  height={17} color="#2d3f4a" />
+            <Rect x={WIN.x + 67}  y={WIN.y + 28} width={7}  height={21} color="#2d3f4a" />
+            <Rect x={WIN.x + 92}  y={WIN.y + 52} width={30} height={42} color="#38505c" />
+            <Rect x={WIN.x + 88}  y={WIN.y + 48} width={38} height={8}  color="#38505c" />
+            <Rect x={WIN.x + 132} y={WIN.y + 62} width={60} height={32} color="#324550" />
+            <Rect x={WIN.x + 148} y={WIN.y + 46} width={9}  height={17} color="#324550" />
+            <Rect x={WIN.x + 170} y={WIN.y + 40} width={9}  height={23} color="#324550" />
+            {/* Ground strip */}
+            <Rect x={WIN.x} y={WIN.y + 88} width={WIN.w} height={6} color="#26363f" />
+          </Group>
+          {/* Window frame */}
+          <Rect x={WIN.x - 5} y={WIN.y - 5} width={WIN.w + 10} height={WIN.h + 10}
+            color="#6b5540" style="stroke" strokeWidth={10} />
+          <Rect x={WIN.x + WIN.w / 3 - 2} y={WIN.y} width={4} height={WIN.h} color="#6b5540" />
+          <Rect x={WIN.x + WIN.w * 2 / 3 - 2} y={WIN.y} width={4} height={WIN.h} color="#6b5540" />
+          <Rect x={WIN.x} y={WIN.y + WIN.h / 2 - 2} width={WIN.w} height={4} color="#6b5540" />
+          {/* Metal shutter — slides down into frame when alarm triggers */}
+          <Group clip={{ x: WIN.x - 5, y: WIN.y - 5, width: WIN.w + 10, height: WIN.h + 10 }}>
+            <Rect x={WIN.x - 5} y={shutterY} width={WIN.w + 10} height={WIN.h + 10} color="#5c5c5c" />
+            {[...Array(10)].map((_, i) => (
+              <Rect key={i} x={WIN.x - 5} y={shutterY + i * 11} width={WIN.w + 10} height={2} color="#484848" />
+            ))}
+            <Rect x={WIN.x - 5} y={shutterY + WIN.h + 8} width={WIN.w + 10} height={4} color="#888" />
+          </Group>
 
           {/* Emergency lighting */}
           {emergencyLight && (
