@@ -133,3 +133,47 @@ export const WIN_DIALOG = [
   'ABER — Sie haben alle vier Verschluesselungen geknackt. Das beweist: Sie sind ein echter Chemiker.',
   'Willkommen im Team. Sagen Sie aber niemandem, was Sie hier gesehen haben. Vor allem nicht den Diensten.',
 ];
+
+// Triggered at specific remaining-time thresholds (seconds left when call fires)
+export const RADIO_CALLS = [
+  {
+    at: 17 * 60, // ~3 min after alarm
+    lines: [
+      'Hier Molar. Kommen Sie rein?',
+      'Ich beobachte die Strasse. Jemand lauft verdaechtig langsam.',
+      '...Das ist eine Katze. Trotzdem verdaechtig. Weitermachen.',
+    ],
+  },
+  {
+    at: 13 * 60, // ~7 min in
+    lines: [
+      'Molar hier. Haben Sie schon Fortschritte?',
+      'Gut. Gut gut gut. Misstrauen Sie allem — auch den Messwerten.',
+      'Besonders den Messwerten.',
+    ],
+  },
+  {
+    at: 9 * 60, // ~11 min in
+    lines: [
+      'Kurze Meldung: Die Gegend ist sauber. Relativ.',
+      'Und... aehem... die Kuehlanlage. Ich habe dort eventuell auch etwas gedrueckt.',
+      'Keine Panik. Koennte relevant sein. Koennte.',
+    ],
+  },
+  {
+    at: 5 * 60, // ~15 min in — starting to get nervous
+    lines: [
+      'Bitte beeilen Sie sich. Rein professionell gesehen.',
+      'Die Kuehlanlage der explosiven Substanzen laeuft seit einiger Zeit... nicht mehr.',
+      'Das ist kein Grund zur Panik. Aber bitte: BEEILEN.',
+    ],
+  },
+  {
+    at: 2 * 60, // danger threshold
+    lines: [
+      'ICH BIN ES, MOLAR. Hoeren Sie mich?!',
+      'Wurscht wer Sie geschickt hat — loesen Sie das JETZT.',
+      'Ich druecke hier Knoepfe. Hoffentlich die richtigen.',
+    ],
+  },
+];

@@ -9,7 +9,8 @@ import Scene4Periodic from './src/scenes/Scene4Periodic';
 import Scene5Organik from './src/scenes/Scene5Organik';
 import SceneEnd from './src/scenes/SceneEnd';
 import AlarmScreen from './src/ui/AlarmScreen';
-import { ROOMS, TIMER_SECONDS } from './src/config/game';
+import RadioCall from './src/ui/RadioCall';
+import { ROOMS, TIMER_SECONDS, RADIO_CALLS } from './src/config/game';
 
 const ROOM_COMPONENTS = { 2: Scene2Titration, 3: Scene3Stoich, 4: Scene4Periodic, 5: Scene5Organik };
 
@@ -27,6 +28,9 @@ export default function App() {
   const [gameState, setGameState] = useState('playing');
   const startTimeRef = useRef(null);
 
+  const [radioCall, setRadioCall] = useState(null);
+  const firedCallsRef = useRef(new Set());
+
   // One-shot flicker when Molar leaves
   const flickerAnim = useRef(new Animated.Value(0)).current;
 
@@ -35,7 +39,16 @@ export default function App() {
     if (!introDone || gameState !== 'playing') return;
     if (startTimeRef.current === null) startTimeRef.current = Date.now();
     if (timeLeft <= 0) { setGameState('fail'); return; }
-    const id = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
+    const id = setInterval(() => setTimeLeft((t) => {
+      const next = Math.max(0, t - 1);
+      // Fire radio calls at their threshold (only once each)
+      const call = RADIO_CALLS.find((c) => next <= c.at && !firedCallsRef.current.has(c.at));
+      if (call) {
+        firedCallsRef.current.add(call.at);
+        setRadioCall(call.lines);
+      }
+      return next;
+    }), 1000);
     return () => clearInterval(id);
   }, [introDone, timeLeft, gameState]);
 
@@ -96,8 +109,10 @@ export default function App() {
     setGameState('playing');
     setScreen('scene1');
     setActiveRoom(null);
+    setRadioCall(null);
     flickerAnim.setValue(0);
     startTimeRef.current = null;
+    firedCallsRef.current = new Set();
   }, [flickerAnim]);
 
   const RoomComp = activeRoom ? ROOM_COMPONENTS[activeRoom.scene] : null;
@@ -145,6 +160,9 @@ export default function App() {
 
       {/* Alarm screen — shown after flicker, before timer starts */}
       {alarmPending && <AlarmScreen onDismiss={onAlarmDismissed} />}
+
+      {/* Molar radio calls during gameplay */}
+      {radioCall && <RadioCall lines={radioCall} onDismiss={() => setRadioCall(null)} />}
 
       {/* One-shot power-cut flicker */}
       <Animated.View pointerEvents="none" style={[styles.flicker, { opacity: flickerAnim }]} />
