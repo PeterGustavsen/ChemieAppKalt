@@ -20,7 +20,7 @@ import {
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
 const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0, frames: 8 };
 const LAMP_MAIN = { x: SCENE_W / 2, y: 8 };       // ceiling centre lamp
-const LAMP_TASKS = { x: 490, y: 10 };              // second lamp above task boxes
+const LAMP_TASKS = { x: 534, y: 8 };               // second lamp centred above task boxes
 const MOLAR_EXIT_X = -200;
 const WALK_SPEED = 7;
 
@@ -159,9 +159,16 @@ export default function Scene1Hub({
               </Rect>
               {/* Second lamp above task boxes — activates 3 s later */}
               {taskLamp && (
-                <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow * 0.8}>
-                  <RadialGradient c={LAMP_TASKS} r={200} colors={['#d41808', '#00000000']} />
-                </Rect>
+                <Group>
+                  {/* Wide red wash */}
+                  <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
+                    <RadialGradient c={LAMP_TASKS} r={230} colors={['#ff2a08', '#d4180840', '#00000000']} />
+                  </Rect>
+                  {/* Bright lamp-core hot-spot */}
+                  <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={Math.min(1, glow * 1.8)}>
+                    <RadialGradient c={LAMP_TASKS} r={50} colors={['#ff7040', '#ff200800']} />
+                  </Rect>
+                </Group>
               )}
             </Group>
           )}
