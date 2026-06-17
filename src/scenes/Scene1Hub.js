@@ -195,17 +195,17 @@ export default function Scene1Hub({
         <View pointerEvents="none" style={[styles.screen, L.toScreen(TERMINAL_SCREEN)]}>
           {!emergencyLight ? (
             <>
-              <Text style={styles.screenTitle}>CHEM. LABS</Text>
-              <Text style={styles.screenTitle}>MUENCHEN</Text>
-              <Text style={styles.screenSub}>SICHERHEITSSYSTEM</Text>
+              <Text style={styles.screenBig}>CHEM.</Text>
+              <Text style={styles.screenBig}>LABS</Text>
+              <Text style={styles.screenSub}>MUENCHEN</Text>
               <Text style={styles.screenSub}>STATUS: OK</Text>
             </>
           ) : alarmPending ? (
             <>
-              <Text style={styles.screenAlarm}>[!] ALARM</Text>
+              <Text style={styles.screenAlarm}>[!]</Text>
+              <Text style={styles.screenAlarm}>ALARM</Text>
               <Text style={styles.screenAlarmSub}>GESPERRT</Text>
-              <Text style={styles.screenSub}>4 CODES</Text>
-              <Text style={styles.screenSub}>ERFORDERLICH</Text>
+              <Text style={styles.screenSub}>CODES EINGEBEN</Text>
             </>
           ) : (
             <>
@@ -280,11 +280,12 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0d0f17' },
   hotspot: { position: 'absolute' },
   screen: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  screenTitle: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 9, letterSpacing: 1 },
-  screenCodes: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 11, marginTop: 6, fontWeight: 'bold' },
-  screenHint: { color: '#2f8f3a', fontFamily: 'monospace', fontSize: 9, marginTop: 8 },
-  screenTimer: { fontFamily: 'monospace', fontSize: 15, marginTop: 6, fontWeight: 'bold', letterSpacing: 2 },
-  screenSub: { color: '#3a6e3f', fontFamily: 'monospace', fontSize: 8, letterSpacing: 1 },
-  screenAlarm: { color: '#ff3010', fontFamily: 'monospace', fontSize: 11, fontWeight: 'bold', letterSpacing: 1 },
-  screenAlarmSub: { color: '#cc2010', fontFamily: 'monospace', fontSize: 10, fontWeight: 'bold', letterSpacing: 2 },
+  screenBig: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 16, fontWeight: 'bold', letterSpacing: 2 },
+  screenTitle: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1 },
+  screenCodes: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 13, marginTop: 4, fontWeight: 'bold' },
+  screenHint: { color: '#2f8f3a', fontFamily: 'monospace', fontSize: 11, marginTop: 6 },
+  screenTimer: { fontFamily: 'monospace', fontSize: 18, marginTop: 4, fontWeight: 'bold', letterSpacing: 2 },
+  screenSub: { color: '#3a6e3f', fontFamily: 'monospace', fontSize: 10, letterSpacing: 1 },
+  screenAlarm: { color: '#ff3010', fontFamily: 'monospace', fontSize: 17, fontWeight: 'bold', letterSpacing: 2 },
+  screenAlarmSub: { color: '#cc2010', fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', letterSpacing: 2 },
 });
