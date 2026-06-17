@@ -12,7 +12,7 @@ import PixelDialog from '../ui/PixelDialog';
 import { ROOMS, WIN_DIALOG, SCENE_W, SCENE_H } from '../config/game';
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
-const MOLAR = { x: 70, y: 188, frameW: 72, frameH: 112, scale: 1.45, frames: 8 };
+const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0, frames: 8 };
 const LAMP = { x: SCENE_W / 2, y: 8 };
 
 const fmtTime = (s) =>
@@ -27,7 +27,7 @@ export default function SceneWin({ elapsed, onRestart }) {
   const [glow, setGlow] = useState(0.25);
 
   // Molar walks in from the left on mount, dialog starts after he arrives
-  const [molarX, setMolarX] = useState(MOLAR.x - 260); // starts off-screen left
+  const [molarX, setMolarX] = useState(MOLAR.x - 220); // starts off-screen left
   const [molarArrived, setMolarArrived] = useState(false);
 
   useEffect(() => {

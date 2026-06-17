@@ -66,17 +66,17 @@ const styles = StyleSheet.create({
     alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16,
   },
   box: {
-    width: '100%', maxWidth: 720,
-    backgroundColor: 'rgba(13,15,23,0.94)',
+    width: '100%', maxWidth: 680,
+    backgroundColor: 'rgba(13,15,23,0.96)',
     borderWidth: 3, borderColor: '#6fd3dd',
-    borderRadius: 2, padding: 14,
+    borderRadius: 2, padding: 10,
     shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 0,
     shadowOffset: { width: 0, height: 4 },
   },
   speaker: {
     color: '#f0b23a', fontFamily: 'monospace', fontWeight: 'bold',
-    fontSize: 13, marginBottom: 6, letterSpacing: 1,
+    fontSize: 16, marginBottom: 5, letterSpacing: 1,
   },
-  text: { color: '#eafcff', fontFamily: 'monospace', fontSize: 14, lineHeight: 21 },
-  next: { color: '#6fd3dd', fontFamily: 'monospace', fontSize: 11, textAlign: 'right', marginTop: 6 },
+  text: { color: '#eafcff', fontFamily: 'monospace', fontSize: 17, lineHeight: 24 },
+  next: { color: '#6fd3dd', fontFamily: 'monospace', fontSize: 13, textAlign: 'right', marginTop: 5 },
 });

@@ -9,7 +9,6 @@ import Scene4Periodic from './src/scenes/Scene4Periodic';
 import Scene5Organik from './src/scenes/Scene5Organik';
 import SceneWin from './src/scenes/SceneWin';
 import SceneFail from './src/scenes/SceneFail';
-import AlarmBubble from './src/ui/AlarmBubble';
 import RadioCall from './src/ui/RadioCall';
 import { ROOMS, TIMER_SECONDS, RADIO_CALLS } from './src/config/game';
 
@@ -96,7 +95,7 @@ export default function App() {
   const onBack = useCallback(() => { setScreen('scene1'); setActiveRoom(null); }, []);
   const onReveal = useCallback((id) => setRevealedIds((r) => (r.includes(id) ? r : [...r, id])), []);
 
-  // Molar leaves → power flicker → screen shakes → alarm bubble
+  // Molar leaves → power flicker → screen shakes → alarm on terminal → timer starts
   const onIntroDone = useCallback(() => {
     flickerAnim.setValue(0);
     Animated.sequence([
@@ -109,14 +108,13 @@ export default function App() {
     ]).start(() => {
       triggerShake();
       setAlarmPending(true);
+      // Terminal shows [!] ALARM for 5 s, then timer starts automatically
+      setTimeout(() => {
+        setAlarmPending(false);
+        setIntroDone(true);
+      }, 5000);
     });
   }, [flickerAnim, triggerShake]);
-
-  // Alarm bubble auto-dismissed → timer starts
-  const onAlarmDismissed = useCallback(() => {
-    setAlarmPending(false);
-    setIntroDone(true);
-  }, []);
 
   const onRestart = useCallback(() => {
     setSolvedIds([]);
@@ -185,9 +183,6 @@ export default function App() {
           danger={danger}
         />
       )}
-
-      {/* Alarm intercom bubble — slides in from top after power cut */}
-      {alarmPending && <AlarmBubble onDismiss={onAlarmDismissed} />}
 
       {/* Molar radio calls — top-left speaker widget */}
       {radioCall && <RadioCall lines={radioCall} onDismiss={() => setRadioCall(null)} />}

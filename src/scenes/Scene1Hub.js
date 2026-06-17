@@ -18,7 +18,7 @@ import {
 } from '../config/game';
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
-const MOLAR = { x: 70, y: 188, frameW: 72, frameH: 112, scale: 1.45, frames: 8 };
+const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0, frames: 8 };
 const LAMP_MAIN = { x: SCENE_W / 2, y: 8 };       // ceiling centre lamp
 const LAMP_TASKS = { x: 490, y: 10 };              // second lamp above task boxes
 const MOLAR_EXIT_X = -200;
