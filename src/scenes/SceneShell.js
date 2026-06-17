@@ -29,8 +29,8 @@ export default function SceneShell({
     if (!emergencyLight) { setGlow(0); return; }
     let t = 0;
     const period = danger ? 700 : 2000;
-    const lo = danger ? 0.30 : 0.18;
-    const hi = danger ? 0.65 : 0.40;
+    const lo = danger ? 0.40 : 0.28;
+    const hi = danger ? 0.75 : 0.55;
     const id = setInterval(() => {
       t += 32;
       const phase = (Math.sin((t / period) * Math.PI * 2) + 1) / 2;
@@ -48,12 +48,12 @@ export default function SceneShell({
 
           {emergencyLight && (
             <Group>
-              <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.78)" />
+              <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.52)" />
               <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
                 <RadialGradient
                   c={{ x: LAMP.x, y: LAMP.y }}
-                  r={260}
-                  colors={['#d41808', '#00000000']}
+                  r={300}
+                  colors={['#e82010', '#00000000']}
                 />
               </Rect>
             </Group>
