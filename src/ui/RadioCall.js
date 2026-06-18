@@ -3,6 +3,7 @@ import { Text, Image, Pressable, StyleSheet, Animated } from 'react-native';
 
 const FRAME_W = 72;
 const FRAME_H = 112;
+const FRAMES = 15;     // muss zur Frame-Anzahl in molar_idle.png passen
 const AVATAR = 52;
 
 export default function RadioCall({ lines, onDismiss }) {
@@ -60,10 +61,13 @@ export default function RadioCall({ lines, onDismiss }) {
             <Image
               source={require('../../assets/sprites/molar_idle.png')}
               style={styles.sprite}
-              resizeMode="cover"
+              resizeMode="stretch"
             />
           </Animated.View>
-          <Text style={styles.caller}>{'>> FUNK\nDr. Molar'}</Text>
+          <Animated.View>
+            <Text style={styles.caller}>{'>> FUNK-EMPFANG'}</Text>
+            <Text style={styles.name}>DR. MOLAR</Text>
+          </Animated.View>
         </Animated.View>
 
         <Text style={styles.line}>{shown}</Text>
@@ -81,10 +85,10 @@ const styles = StyleSheet.create({
   root: {
     position: 'absolute', top: 0, left: 0, right: 0,
     zIndex: 150,
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   card: {
-    marginTop: 10,
+    marginTop: 8, marginLeft: 8,
     maxWidth: 280,
     backgroundColor: '#0d0f17',
     borderWidth: 2, borderColor: '#d41808',
@@ -101,14 +105,19 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   sprite: {
-    // Zoom + offset so only frame 0's head fills the round avatar
+    // Frame 0 (Kopf) gezoomt ins runde Avatar. Breite = ganzes Sheet,
+    // damit ein Frame korrekt skaliert; Offset zentriert den Kopf.
     position: 'absolute',
-    width: FRAME_W * 8 * 1.3, height: FRAME_H * 1.3,
+    width: FRAME_W * FRAMES * 1.3, height: FRAME_H * 1.3,
     left: -21, top: -6,
   },
   caller: {
     color: '#d41808', fontFamily: 'monospace',
-    fontSize: 11, fontWeight: 'bold', letterSpacing: 1, lineHeight: 16,
+    fontSize: 14, fontWeight: '900', letterSpacing: 1, lineHeight: 18,
+  },
+  name: {
+    color: '#f0f4fa', fontFamily: 'monospace',
+    fontSize: 16, fontWeight: '900', letterSpacing: 1, lineHeight: 20,
   },
   line: {
     color: '#dbe4f0', fontFamily: 'monospace', fontSize: 15, lineHeight: 21,
