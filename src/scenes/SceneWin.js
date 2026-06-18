@@ -107,10 +107,10 @@ export default function SceneWin({ elapsed, onRestart }) {
           {/* Molar walks back in; Sprech-Sheet waehrend er redet */}
           <AnimatedSprite
             image={molarArrived && !dialogDone ? molarSpeak : molar}
-            frameCount={molarArrived && !dialogDone ? 2 : MOLAR.frames}
+            frameCount={molarArrived && !dialogDone ? 8 : MOLAR.frames}
             frameW={MOLAR.frameW} frameH={MOLAR.frameH}
             x={molarX} y={MOLAR.y} scale={MOLAR.scale}
-            fps={molarArrived && !dialogDone ? 5 : 3}
+            fps={molarArrived && !dialogDone ? 4 : 3}
           />
         </Group>
       </Canvas>

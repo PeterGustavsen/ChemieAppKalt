@@ -3,9 +3,9 @@ import { Text, Image, Pressable, StyleSheet, Animated } from 'react-native';
 
 const FRAME_W = 72;
 const FRAME_H = 112;
-const SPEAK_FRAMES = 2;        // molar_speak.png: Mund zu / auf
-const AVATAR = 52;
-const ZOOM = 1.3;
+const SPEAK_FRAMES = 8;        // molar_speak.png: zu + versch. Mundformen
+const AVATAR = 64;
+const ZOOM = 1.4;
 const FW_Z = FRAME_W * ZOOM;   // ein Frame, gezoomt
 
 export default function RadioCall({ lines, onDismiss }) {
@@ -45,7 +45,7 @@ export default function RadioCall({ lines, onDismiss }) {
   const [mouth, setMouth] = useState(0);
   useEffect(() => {
     if (!speaking) { setMouth(0); return; }
-    const id = setInterval(() => setMouth((m) => (m ? 0 : 1)), 130);
+    const id = setInterval(() => setMouth((m) => (m + 1) % SPEAK_FRAMES), 200);
     return () => clearInterval(id);
   }, [speaking]);
 
@@ -71,7 +71,7 @@ export default function RadioCall({ lines, onDismiss }) {
           <Animated.View style={styles.avatar}>
             <Image
               source={require('../../assets/sprites/molar_speak.png')}
-              style={[styles.sprite, { left: -21 - mouth * FW_Z }]}
+              style={[styles.sprite, { left: -20 - mouth * FW_Z }]}
               resizeMode="stretch"
             />
           </Animated.View>
@@ -100,38 +100,38 @@ const styles = StyleSheet.create({
   },
   card: {
     marginTop: 8, marginLeft: 8,
-    maxWidth: 280,
+    maxWidth: 330,
     backgroundColor: '#0d0f17',
     borderWidth: 2, borderColor: '#d41808',
     borderRadius: 6,
-    padding: 12,
+    padding: 14,
   },
   header: {
-    flexDirection: 'row', alignItems: 'center', marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center', marginBottom: 10,
   },
   avatar: {
     width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2,
     overflow: 'hidden', backgroundColor: '#1a1d2a',
     borderWidth: 2, borderColor: '#d41808',
-    marginRight: 10,
+    marginRight: 12,
   },
   sprite: {
     // Kopf gezoomt ins runde Avatar. Breite = ganzes Sheet, damit ein Frame
-    // korrekt skaliert; horizontaler Offset (inline) waehlt zu/auf-Mund.
+    // korrekt skaliert; horizontaler Offset (inline) waehlt die Mundform.
     position: 'absolute',
     width: FRAME_W * SPEAK_FRAMES * ZOOM, height: FRAME_H * ZOOM,
-    top: -6,
+    top: -4,
   },
   caller: {
     color: '#d41808', fontFamily: 'monospace',
-    fontSize: 14, fontWeight: '900', letterSpacing: 1, lineHeight: 18,
+    fontSize: 15, fontWeight: '900', letterSpacing: 1, lineHeight: 19,
   },
   name: {
     color: '#f0f4fa', fontFamily: 'monospace',
-    fontSize: 16, fontWeight: '900', letterSpacing: 1, lineHeight: 20,
+    fontSize: 17, fontWeight: '900', letterSpacing: 1, lineHeight: 21,
   },
   line: {
-    color: '#dbe4f0', fontFamily: 'monospace', fontSize: 15, lineHeight: 21,
+    color: '#dbe4f0', fontFamily: 'monospace', fontSize: 16, lineHeight: 23,
   },
   next: {
     color: '#d41808', fontFamily: 'monospace',

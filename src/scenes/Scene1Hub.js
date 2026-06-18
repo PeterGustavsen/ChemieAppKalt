@@ -255,10 +255,10 @@ export default function Scene1Hub({
           {!molarGone && (
             <AnimatedSprite
               image={dialogOpen ? molarSpeak : molar}
-              frameCount={dialogOpen ? 2 : MOLAR.frames}
+              frameCount={dialogOpen ? 8 : MOLAR.frames}
               frameW={MOLAR.frameW} frameH={MOLAR.frameH}
               x={molarX} y={MOLAR.y + molarBobY} scale={MOLAR.scale}
-              fps={dialogOpen ? 5 : 3}
+              fps={dialogOpen ? 4 : 3}
             />
           )}
 

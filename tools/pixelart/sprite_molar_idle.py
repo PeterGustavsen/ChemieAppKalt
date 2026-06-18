@@ -20,8 +20,29 @@ def _ell(d, box, fill=None, outline=None):
     d.ellipse(box, fill=fill, outline=outline)
 
 
-def draw_molar(breath=0, blink=False, arm=0.0, mouth_open=False, crossed=False):
+def _mouth(d, cx, ey, m):
+    """Mundformen 0..4: zu / leicht / mittel / weit (O) / breit (ee)."""
+    LIP = (120, 60, 70)
+    if m == 0:                                   # zu
+        H.hline(d, cx - 3, ey + 11, 6, INK_SOFT)
+    elif m == 1:                                 # leicht offen
+        H.rect(d, cx - 2, ey + 10, 4, 2, INK_SOFT)
+        d.point((cx, ey + 11), fill=LIP)
+    elif m == 2:                                 # mittel
+        H.rect(d, cx - 3, ey + 10, 6, 3, INK_SOFT)
+        H.rect(d, cx - 2, ey + 11, 4, 1, LIP)
+    elif m == 3:                                 # weit offen (O)
+        H.rect(d, cx - 3, ey + 9, 6, 5, INK_SOFT)
+        H.rect(d, cx - 2, ey + 10, 4, 3, LIP)
+        H.hline(d, cx - 2, ey + 9, 4, WHITE)     # obere Zaehne
+    else:                                        # breit (ee)
+        H.rect(d, cx - 4, ey + 11, 8, 2, INK_SOFT)
+        H.hline(d, cx - 3, ey + 11, 6, WHITE)
+
+
+def draw_molar(breath=0, blink=False, arm=0.0, mouth=0, crossed=False):
     """arm: 0=unten ... 1=erhoben (Geste). breath: 0..2 px Hub.
+    mouth: 0..4 Mundform (siehe _mouth).
     crossed=True: verschraenkte Arme vor der Brust (statt haengender Arme)."""
     img, d = H.new_canvas(FW, FH)
     cx = 36
@@ -139,11 +160,7 @@ def draw_molar(breath=0, blink=False, arm=0.0, mouth_open=False, crossed=False):
 
     # ---- Nase + Mund ----
     H.rect(d, cx - 1, ey + 4, 2, 4, SKIN[0])
-    if mouth_open:
-        H.rect(d, cx - 3, ey + 10, 6, 3, INK_SOFT)
-        H.rect(d, cx - 2, ey + 11, 4, 1, (120, 60, 70))
-    else:
-        H.hline(d, cx - 3, ey + 11, 6, INK_SOFT)
+    _mouth(d, cx, ey, mouth)
 
     return H.selective_outline(img, INK)
 
@@ -163,9 +180,10 @@ def build():
     idle = [draw_molar(**s) for s in idle_specs]
     H.assemble_sheet(idle, os.path.join(OUT, "molar_idle.png"))
     H.save_preview(idle[0], os.path.join(OUT, "molar_idle_preview.png"), 3)
-    # Speak-Sheet (2 Frames: zu / auf)
-    speak = [draw_molar(breath=0, mouth_open=False),
-             draw_molar(breath=0, mouth_open=True)]
+    # Speak-Sheet: Frame 0 = zu (Ruhe), Rest abwechslungsreiche Mundformen.
+    # Linear durchgespielt ergibt das natuerlich wirkendes Reden.
+    speak_seq = [0, 2, 3, 1, 4, 2, 3, 1]
+    speak = [draw_molar(breath=0, mouth=m) for m in speak_seq]
     H.assemble_sheet(speak, os.path.join(OUT, "molar_speak.png"))
     print(f"molar_idle.png  : {len(idle)} frames @ {FW}x{FH}")
     print(f"molar_speak.png : {len(speak)} frames @ {FW}x{FH}")
