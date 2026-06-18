@@ -1,7 +1,8 @@
 node_modules/
 .expo/
 .expo-shared/
-.claude/
+.claude/*
+!.claude/skills/
 *_preview.png
 public/
 App.js.bak2
