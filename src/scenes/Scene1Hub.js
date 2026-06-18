@@ -18,7 +18,7 @@ import {
 } from '../config/game';
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
-const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0, frames: 8 };
+const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0, frames: 15 };
 const LAMP_MAIN = { x: SCENE_W / 2, y: 8 };       // ceiling centre lamp
 const LAMP_TASKS = { x: 534, y: 8 };               // second lamp centred above task boxes
 const MOLAR_EXIT_X = -200;
@@ -254,7 +254,7 @@ export default function Scene1Hub({
           {!molarGone && (
             <AnimatedSprite
               image={molar} frameCount={MOLAR.frames} frameW={MOLAR.frameW} frameH={MOLAR.frameH}
-              x={molarX} y={MOLAR.y + molarBobY} scale={MOLAR.scale} fps={7}
+              x={molarX} y={MOLAR.y + molarBobY} scale={MOLAR.scale} fps={3}
             />
           )}
 

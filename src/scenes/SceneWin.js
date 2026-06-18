@@ -12,7 +12,7 @@ import PixelDialog from '../ui/PixelDialog';
 import { ROOMS, WIN_DIALOG, SCENE_W, SCENE_H } from '../config/game';
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
-const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0, frames: 8 };
+const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0, frames: 15 };
 
 const WIN = { x: 205, y: 14, w: 230, h: 94 };
 const SHUTTER_TOP = WIN.y - WIN.h - 8;
@@ -106,7 +106,7 @@ export default function SceneWin({ elapsed, onRestart }) {
           {/* Molar walks back in */}
           <AnimatedSprite
             image={molar} frameCount={MOLAR.frames} frameW={MOLAR.frameW} frameH={MOLAR.frameH}
-            x={molarX} y={MOLAR.y} scale={MOLAR.scale} fps={7}
+            x={molarX} y={MOLAR.y} scale={MOLAR.scale} fps={3}
           />
         </Group>
       </Canvas>

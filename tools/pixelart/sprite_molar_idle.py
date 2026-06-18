@@ -20,8 +20,9 @@ def _ell(d, box, fill=None, outline=None):
     d.ellipse(box, fill=fill, outline=outline)
 
 
-def draw_molar(breath=0, blink=False, arm=0.0, mouth_open=False):
-    """arm: 0=unten ... 1=erhoben (Geste). breath: 0..2 px Hub."""
+def draw_molar(breath=0, blink=False, arm=0.0, mouth_open=False, crossed=False):
+    """arm: 0=unten ... 1=erhoben (Geste). breath: 0..2 px Hub.
+    crossed=True: verschraenkte Arme vor der Brust (statt haengender Arme)."""
     img, d = H.new_canvas(FW, FH)
     cx = 36
     yb = breath            # Oberkoerper-Versatz nach unten bei tiefem Atem
@@ -58,26 +59,42 @@ def draw_molar(breath=0, blink=False, arm=0.0, mouth_open=False):
     H.rect(d, cx + 9, top + 9, 2, 6, BRASS[2])   # Stift
 
     # ---- Arme ----
-    # linker Arm (viewer rechts) immer unten am Koerper
-    H.rect(d, cx + 14, top + 6, 6, 30, COAT[1])
-    H.rect(d, cx + 14, top + 6, 2, 30, COAT[0])  # Schatten innen
-    H.rect(d, cx + 15, top + 34, 6, 5, SKIN[1])  # Hand
-    # rechter Arm (viewer links): hebt sich bei Geste
-    ax = cx - 20
-    if arm <= 0.05:
-        H.rect(d, ax, top + 6, 6, 30, COAT[1])
-        H.rect(d, ax, top + 6, 2, 30, COAT[1])
-        H.rect(d, ax + 1, top + 34, 6, 5, SKIN[1])
+    if crossed:
+        # Verschraenkte Arme: Unterarm-Block quer vor der Brust. Kanten-,
+        # Naht- und Schattenlinie trennen die zwei Arme vom Kittel.
+        chest = top + 13
+        H.rect(d, cx - 19, top + 6, 5, 9, COAT[0])       # Oberarm-Stumpf links
+        H.rect(d, cx + 14, top + 6, 5, 9, COAT[0])       # Oberarm-Stumpf rechts
+        H.rect(d, cx - 17, chest, 34, 11, COAT[1])       # Unterarm-Block
+        H.hline(d, cx - 17, chest, 34, COAT[0])          # obere Kante
+        H.hline(d, cx - 17, chest + 5, 34, COAT[0])      # Naht zwischen den Armen
+        H.hline(d, cx - 17, chest + 11, 34, INK_SOFT)    # Schatten unter den Armen
+        H.dither_rect(img, cx, chest + 6, 16, 4, COAT[1], COAT[0], 0.5)  # unterer Arm dunkler
+        H.rect(d, cx - 18, chest + 5, 6, 6, SKIN[1])     # Hand unter rechtem Ellbogen
+        H.outline(d, cx - 18, chest + 5, 6, 6, SKIN[0])
+        H.rect(d, cx + 11, chest - 1, 6, 6, SKIN[1])     # Hand auf linkem Ellbogen
+        H.outline(d, cx + 11, chest - 1, 6, 6, SKIN[0])
     else:
-        # gebeugter Arm: Oberarm runter, Unterarm hoch zur Brust/Kopf
-        elbow_y = top + 6 + int(20 * (1 - arm * 0.4))
-        H.rect(d, ax, top + 6, 6, elbow_y - (top + 6), COAT[1])
-        fx = ax + 2
-        fy_top = top + 4 - int(arm * 10)
-        H.rect(d, fx, fy_top, 6, elbow_y - fy_top, COAT[0])
-        # Hand + deutender Zeigefinger
-        H.rect(d, fx, fy_top - 4, 6, 5, SKIN[1])
-        H.rect(d, fx + 2, fy_top - 8, 2, 5, SKIN[0])  # Finger
+        # linker Arm (viewer rechts) immer unten am Koerper
+        H.rect(d, cx + 14, top + 6, 6, 30, COAT[1])
+        H.rect(d, cx + 14, top + 6, 2, 30, COAT[0])  # Schatten innen
+        H.rect(d, cx + 15, top + 34, 6, 5, SKIN[1])  # Hand
+        # rechter Arm (viewer links): hebt sich bei Geste
+        ax = cx - 20
+        if arm <= 0.05:
+            H.rect(d, ax, top + 6, 6, 30, COAT[1])
+            H.rect(d, ax, top + 6, 2, 30, COAT[1])
+            H.rect(d, ax + 1, top + 34, 6, 5, SKIN[1])
+        else:
+            # gebeugter Arm: Oberarm runter, Unterarm hoch zur Brust/Kopf
+            elbow_y = top + 6 + int(20 * (1 - arm * 0.4))
+            H.rect(d, ax, top + 6, 6, elbow_y - (top + 6), COAT[1])
+            fx = ax + 2
+            fy_top = top + 4 - int(arm * 10)
+            H.rect(d, fx, fy_top, 6, elbow_y - fy_top, COAT[0])
+            # Hand + deutender Zeigefinger
+            H.rect(d, fx, fy_top - 4, 6, 5, SKIN[1])
+            H.rect(d, fx + 2, fy_top - 8, 2, 5, SKIN[0])  # Finger
 
     # ---- Hals ----
     H.rect(d, cx - 4, 40 + yb, 8, 7, SKIN[0])
@@ -133,11 +150,15 @@ def draw_molar(breath=0, blink=False, arm=0.0, mouth_open=False):
 
 def build():
     os.makedirs(OUT, exist_ok=True)
-    # Idle-Loop (8 Frames): atmen + blinzeln + gelegentliche Geste
+    # Idle-Loop: viel ruhiges Atmen/Blinzeln, laengere Phase verschraenkte
+    # Arme, deutende Geste nur einmal pro Runde (war vorher 2 von 8 Frames).
     idle_specs = [
-        dict(breath=0), dict(breath=1), dict(breath=2), dict(breath=1),
-        dict(breath=0, blink=True), dict(breath=0),
-        dict(breath=1, arm=0.5), dict(breath=1, arm=1.0),
+        dict(breath=0), dict(breath=1), dict(breath=2), dict(breath=2),
+        dict(breath=1), dict(breath=0), dict(breath=0, blink=True), dict(breath=0),
+        dict(breath=1, crossed=True), dict(breath=2, crossed=True),
+        dict(breath=2, crossed=True), dict(breath=1, crossed=True),
+        dict(breath=0, blink=True, crossed=True), dict(breath=0, crossed=True),
+        dict(breath=1, arm=1.0),
     ]
     idle = [draw_molar(**s) for s in idle_specs]
     H.assemble_sheet(idle, os.path.join(OUT, "molar_idle.png"))
