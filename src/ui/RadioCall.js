@@ -3,8 +3,10 @@ import { Text, Image, Pressable, StyleSheet, Animated } from 'react-native';
 
 const FRAME_W = 72;
 const FRAME_H = 112;
-const FRAMES = 15;     // muss zur Frame-Anzahl in molar_idle.png passen
+const SPEAK_FRAMES = 2;        // molar_speak.png: Mund zu / auf
 const AVATAR = 52;
+const ZOOM = 1.3;
+const FW_Z = FRAME_W * ZOOM;   // ein Frame, gezoomt
 
 export default function RadioCall({ lines, onDismiss }) {
   const slide = useRef(new Animated.Value(-160)).current;
@@ -38,6 +40,15 @@ export default function RadioCall({ lines, onDismiss }) {
     return () => clearInterval(timer.current);
   }, [text]);
 
+  // Mund bewegt sich, solange noch getippt wird (= er "spricht")
+  const speaking = !done;
+  const [mouth, setMouth] = useState(0);
+  useEffect(() => {
+    if (!speaking) { setMouth(0); return; }
+    const id = setInterval(() => setMouth((m) => (m ? 0 : 1)), 130);
+    return () => clearInterval(id);
+  }, [speaking]);
+
   const dismiss = () => {
     Animated.timing(slide, { toValue: -160, duration: 200, useNativeDriver: true }).start(onDismiss);
   };
@@ -59,8 +70,8 @@ export default function RadioCall({ lines, onDismiss }) {
         <Animated.View style={styles.header}>
           <Animated.View style={styles.avatar}>
             <Image
-              source={require('../../assets/sprites/molar_idle.png')}
-              style={styles.sprite}
+              source={require('../../assets/sprites/molar_speak.png')}
+              style={[styles.sprite, { left: -21 - mouth * FW_Z }]}
               resizeMode="stretch"
             />
           </Animated.View>
@@ -105,11 +116,11 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   sprite: {
-    // Frame 0 (Kopf) gezoomt ins runde Avatar. Breite = ganzes Sheet,
-    // damit ein Frame korrekt skaliert; Offset zentriert den Kopf.
+    // Kopf gezoomt ins runde Avatar. Breite = ganzes Sheet, damit ein Frame
+    // korrekt skaliert; horizontaler Offset (inline) waehlt zu/auf-Mund.
     position: 'absolute',
-    width: FRAME_W * FRAMES * 1.3, height: FRAME_H * 1.3,
-    left: -21, top: -6,
+    width: FRAME_W * SPEAK_FRAMES * ZOOM, height: FRAME_H * ZOOM,
+    top: -6,
   },
   caller: {
     color: '#d41808', fontFamily: 'monospace',

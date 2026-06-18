@@ -39,6 +39,7 @@ export default function Scene1Hub({
   const L = useStageLayout();
   const bg = usePixelImage(require('../../assets/scenes/scene_01_lab_hub.png'));
   const molar = usePixelImage(require('../../assets/sprites/molar_idle.png'));
+  const molarSpeak = usePixelImage(require('../../assets/sprites/molar_speak.png'));
 
   const [dialog, setDialog] = useState(
     (introDone || alarmPending) ? null : { speaker: 'Prof. Dr. Molar', lines: INTRO_DIALOG }
@@ -250,11 +251,14 @@ export default function Scene1Hub({
               color="rgba(180,30,0,0.18)" />
           </Group>
 
-          {/* Molar — with bob animation while talking */}
+          {/* Molar — Sprech-Sheet (Mund auf/zu) waehrend Dialog, sonst Idle */}
           {!molarGone && (
             <AnimatedSprite
-              image={molar} frameCount={MOLAR.frames} frameW={MOLAR.frameW} frameH={MOLAR.frameH}
-              x={molarX} y={MOLAR.y + molarBobY} scale={MOLAR.scale} fps={3}
+              image={dialogOpen ? molarSpeak : molar}
+              frameCount={dialogOpen ? 2 : MOLAR.frames}
+              frameW={MOLAR.frameW} frameH={MOLAR.frameH}
+              x={molarX} y={MOLAR.y + molarBobY} scale={MOLAR.scale}
+              fps={dialogOpen ? 5 : 3}
             />
           )}
 

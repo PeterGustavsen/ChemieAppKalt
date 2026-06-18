@@ -25,6 +25,7 @@ export default function SceneWin({ elapsed, onRestart }) {
   const L = useStageLayout();
   const bg = usePixelImage(require('../../assets/scenes/scene_01_lab_hub.png'));
   const molar = usePixelImage(require('../../assets/sprites/molar_idle.png'));
+  const molarSpeak = usePixelImage(require('../../assets/sprites/molar_speak.png'));
 
   const [dialogDone, setDialogDone] = useState(false);
 
@@ -103,10 +104,13 @@ export default function SceneWin({ elapsed, onRestart }) {
             <Rect x={WIN.x - 6} y={shutterY + WIN.h + 10} width={WIN.w + 12} height={4} color="#606060" />
           </Group>
 
-          {/* Molar walks back in */}
+          {/* Molar walks back in; Sprech-Sheet waehrend er redet */}
           <AnimatedSprite
-            image={molar} frameCount={MOLAR.frames} frameW={MOLAR.frameW} frameH={MOLAR.frameH}
-            x={molarX} y={MOLAR.y} scale={MOLAR.scale} fps={3}
+            image={molarArrived && !dialogDone ? molarSpeak : molar}
+            frameCount={molarArrived && !dialogDone ? 2 : MOLAR.frames}
+            frameW={MOLAR.frameW} frameH={MOLAR.frameH}
+            x={molarX} y={MOLAR.y} scale={MOLAR.scale}
+            fps={molarArrived && !dialogDone ? 5 : 3}
           />
         </Group>
       </Canvas>
