@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Animated } from 'react-native';
+import { Text, Image, Pressable, StyleSheet, Animated } from 'react-native';
 
 const FRAME_W = 72;
 const FRAME_H = 112;
+const AVATAR = 52;
 
 export default function RadioCall({ lines, onDismiss }) {
   const slide = useRef(new Animated.Value(-160)).current;
@@ -53,86 +54,68 @@ export default function RadioCall({ lines, onDismiss }) {
 
   return (
     <Animated.View style={[styles.root, { transform: [{ translateY: slide }] }]}>
-      <View style={styles.inner}>
-        <View style={styles.portrait}>
-          <View style={styles.spriteClip}>
+      <Pressable style={styles.card} onPress={advance}>
+        <Animated.View style={styles.header}>
+          <Animated.View style={styles.avatar}>
             <Image
               source={require('../../assets/sprites/molar_idle.png')}
               style={styles.sprite}
               resizeMode="cover"
             />
-          </View>
-          <Text style={styles.name}>Dr. Molar</Text>
-        </View>
+          </Animated.View>
+          <Text style={styles.caller}>{'>> FUNK\nDr. Molar'}</Text>
+        </Animated.View>
 
-        <Pressable style={styles.bubble} onPress={advance}>
-          <View style={styles.bubbleTail} />
-          <Text style={styles.caller}>{'>> FUNK-EINGANG'}</Text>
-          <Text style={styles.line}>{shown}</Text>
-          {done && (
-            <Text style={styles.next}>
-              {lineIdx < lines.length - 1 ? '▶ WEITER' : '▶ OK'}
-            </Text>
-          )}
-        </Pressable>
-      </View>
+        <Text style={styles.line}>{shown}</Text>
+        {done && (
+          <Text style={styles.next}>
+            {lineIdx < lines.length - 1 ? '▶ WEITER' : '▶ OK'}
+          </Text>
+        )}
+      </Pressable>
     </Animated.View>
   );
 }
-
-const SCALE = 44 / FRAME_W; // show portrait at 44px wide
 
 const styles = StyleSheet.create({
   root: {
     position: 'absolute', top: 0, left: 0, right: 0,
     zIndex: 150,
+    alignItems: 'center',
   },
-  inner: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    padding: 10,
-  },
-  portrait: {
-    alignItems: 'center', marginRight: 6,
-  },
-  spriteClip: {
-    width: FRAME_W * SCALE,
-    height: FRAME_H * SCALE,
-    overflow: 'hidden',
-  },
-  sprite: {
-    // Full sprite sheet width so only frame 0 (leftmost) shows inside clip
-    width: FRAME_W * 8 * SCALE,
-    height: FRAME_H * SCALE,
-    position: 'absolute', left: 0, top: 0,
-  },
-  name: {
-    color: '#d41808', fontFamily: 'monospace', fontSize: 7,
-    letterSpacing: 1, marginTop: 2,
-  },
-  bubble: {
-    flex: 1,
+  card: {
+    marginTop: 10,
+    maxWidth: 280,
     backgroundColor: '#0d0f17',
     borderWidth: 2, borderColor: '#d41808',
-    padding: 10,
-    position: 'relative',
+    borderRadius: 6,
+    padding: 12,
   },
-  bubbleTail: {
-    position: 'absolute', left: -8, top: 12,
-    width: 0, height: 0,
-    borderTopWidth: 6, borderBottomWidth: 6, borderRightWidth: 8,
-    borderTopColor: 'transparent', borderBottomColor: 'transparent',
-    borderRightColor: '#d41808',
+  header: {
+    flexDirection: 'row', alignItems: 'center', marginBottom: 8,
+  },
+  avatar: {
+    width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2,
+    overflow: 'hidden', backgroundColor: '#1a1d2a',
+    borderWidth: 2, borderColor: '#d41808',
+    marginRight: 10,
+  },
+  sprite: {
+    // Zoom + offset so only frame 0's head fills the round avatar
+    position: 'absolute',
+    width: FRAME_W * 8 * 1.3, height: FRAME_H * 1.3,
+    left: -21, top: -6,
   },
   caller: {
     color: '#d41808', fontFamily: 'monospace',
-    fontSize: 9, fontWeight: 'bold', letterSpacing: 1, marginBottom: 4,
+    fontSize: 11, fontWeight: 'bold', letterSpacing: 1, lineHeight: 16,
   },
   line: {
-    color: '#aab6c6', fontFamily: 'monospace', fontSize: 12, lineHeight: 18,
+    color: '#dbe4f0', fontFamily: 'monospace', fontSize: 15, lineHeight: 21,
   },
   next: {
     color: '#d41808', fontFamily: 'monospace',
-    fontSize: 9, fontWeight: 'bold', letterSpacing: 1,
-    textAlign: 'right', marginTop: 6,
+    fontSize: 11, fontWeight: 'bold', letterSpacing: 1,
+    textAlign: 'right', marginTop: 8,
   },
 });
