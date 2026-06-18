@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import SceneStart from './src/scenes/SceneStart';
 import Scene1Hub from './src/scenes/Scene1Hub';
 import Scene2Titration from './src/scenes/Scene2Titration';
-import Scene3Stoich from './src/scenes/Scene3Stoich';
+import Scene3Redox from './src/scenes/Scene3Redox';
 import Scene4Periodic from './src/scenes/Scene4Periodic';
 import Scene5Organik from './src/scenes/Scene5Organik';
 import SceneWin from './src/scenes/SceneWin';
@@ -13,7 +13,7 @@ import SceneFail from './src/scenes/SceneFail';
 import RadioCall from './src/ui/RadioCall';
 import { ROOMS, TIMER_SECONDS, RADIO_CALLS } from './src/config/game';
 
-const ROOM_COMPONENTS = { 2: Scene2Titration, 3: Scene3Stoich, 4: Scene4Periodic, 5: Scene5Organik };
+const ROOM_COMPONENTS = { 2: Scene2Titration, 3: Scene3Redox, 4: Scene4Periodic, 5: Scene5Organik };
 
 export default function App() {
   const [screen, setScreen] = useState('start');

@@ -17,11 +17,11 @@ export const ROOMS = [
   },
   {
     id: 2, key: 'door2', scene: 3,
-    title: 'Reagenzschrank', theme: 'Stoechiometrie',
+    title: 'Reagenzschrank', theme: 'Redox',
     accent: '#e0b44c',
-    code: '2121',
+    code: '17',
     rect: { x: 540, y: 60, w: 88, h: 104 },
-    examine: 'Reagenzien im Regal. Balanciere die Faellungsreaktion.',
+    examine: 'Eine tiefviolette Permanganat-Loesung neben einer Eisen(II)-Probe. Werte die Redox-Reaktion aus.',
   },
   {
     id: 3, key: 'door3', scene: 4,
@@ -58,17 +58,15 @@ export const PUZZLES = {
   },
   3: {
     intro: [
-      'Eine Faellungsreaktion: Silbernitrat trifft auf Calciumchlorid.',
-      'Stelle die Koeffizienten so ein, dass die Gleichung ausgeglichen ist.',
-      'Die vier Koeffizienten ergeben — der Reihe nach — den Code.',
+      'Kaliumpermanganat — tiefviolett — neben einer Eisen(II)-Loesung. Beide im sauren Milieu.',
+      'Redox-Reaktion: MnO₄⁻ + Fe²⁺ → Mn²⁺ + Fe³⁺.',
+      'Stelle die Teilgleichungen auf und gleiche aus. Die Zahlen ergeben den Code.',
     ],
     hint: [
-      'Zaehle jedes Element auf beiden Seiten: Ag, N, O, Ca, Cl.',
-      'Cl: links 2 (in CaCl2) -> rechts 2x AgCl. Ag dann ebenfalls 2.',
-      'Loesung: 2, 1, 2, 1.',
+      'Reduktion: MnO₄⁻ + 8 H⁺ + 5 e⁻ → Mn²⁺ + 4 H₂O.',
+      'Oxidation: Fe²⁺ → Fe³⁺ + e⁻  — fuenffach, also 5 Elektronen.',
+      'CODE = n(H⁺) + n(H₂O) + n(e⁻) = 8 + 4 + 5.',
     ],
-    terms: ['AgNO₃', 'CaCl₂', 'AgCl', 'Ca(NO₃)₂'],
-    solution: [2, 1, 2, 1],
   },
   4: {
     intro: [
