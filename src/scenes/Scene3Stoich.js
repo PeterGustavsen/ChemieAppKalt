@@ -48,20 +48,8 @@ export default function Scene3Stoich({ room, onBack, onReveal, initiallySolved, 
           <Text style={styles.op}>+</Text>
           <Stepper v={co[3]} i={3} bump={bump} /><Text style={styles.term}>{P.terms[3]}</Text>
         </View>
-
-        <View style={styles.balRow}>
-          {ELEMENTS.map((e) => {
-            const ok = left[e] === right[e];
-            return (
-              <Text key={e} style={[styles.bal, { color: ok ? '#6fe87a' : '#f06b6b' }]}>
-                {e}:{left[e]}/{right[e]}
-              </Text>
-            );
-          })}
-        </View>
-        <Text style={[styles.status, { color: balanced ? '#6fe87a' : '#718096' }]}>
-          {balanced ? (g === 1 ? 'AUSGEGLICHEN ✓' : 'ausgeglichen — aber kuerze die Koeffizienten') : 'noch nicht ausgeglichen'}
-        </Text>
+        {/* Keine Live-Bilanz: der Spieler muss die Atomzahlen selbst kennen.
+           Erst die korrekt ausgeglichene Gleichung loest den Raum. */}
       </View>
     );
   };
@@ -100,7 +88,4 @@ const styles = StyleSheet.create({
   coeff: { color: '#eafcff', fontFamily: 'monospace', fontSize: 18, fontWeight: 'bold' },
   term: { color: '#eafcff', fontFamily: 'monospace', fontSize: 15, marginRight: 4 },
   op: { color: '#6fd3dd', fontFamily: 'monospace', fontSize: 16, marginHorizontal: 4 },
-  balRow: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' },
-  bal: { fontFamily: 'monospace', fontSize: 12 },
-  status: { fontFamily: 'monospace', fontSize: 12, marginTop: 8, fontWeight: 'bold' },
 });
