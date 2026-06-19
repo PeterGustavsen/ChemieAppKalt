@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import SceneShell from './SceneShell';
+import Chalkboard from '../fx/Chalkboard';
 import { PUZZLES } from '../config/game';
 
 const P = PUZZLES[3];
@@ -25,7 +26,7 @@ export default function Scene3Redox({ room, onBack, emergencyLight, danger }) {
     if (busy) return null;
     return (
       <View style={styles.wrap} pointerEvents="none">
-        <View style={[styles.panel, { borderColor: room.accent }]}>
+        <Chalkboard accent={room.accent}>
           <Text style={[styles.kicker, { color: room.accent }]}>REDOX — SAURE LOESUNG</Text>
           <Text style={styles.eq}>MnO₄⁻ + Fe²⁺  →  Mn²⁺ + Fe³⁺</Text>
 
@@ -41,7 +42,7 @@ export default function Scene3Redox({ room, onBack, emergencyLight, danger }) {
             <Text style={styles.codeLbl}>CODE =</Text>
             <Text style={styles.codeFormula}>n(H⁺) + n(H₂O) + n(e⁻)</Text>
           </View>
-        </View>
+        </Chalkboard>
       </View>
     );
   };

@@ -32,16 +32,16 @@ try {
 } catch (_) { /* not installed yet */ }
 
 // ── Native SFX registry ─────────────────────────────────────────────────────
-// Metro requires static paths, so only list files that actually exist —
-// uncomment each line as the asset lands in assets/sfx/.
+// Procedurally generated (see tools/sfx/). Metro requires static paths, so add
+// a new line here when a new file lands in assets/sfx/.
 const SFX = {
-  // success: require('../../assets/sfx/success-chime.mp3'),
-  // error:   require('../../assets/sfx/error-buzz.mp3'),
-  // click:   require('../../assets/sfx/glass-clink.mp3'),
-  // drip:    require('../../assets/sfx/drip.mp3'),
-  // clunk:   require('../../assets/sfx/locker-clunk.mp3'),
-  // alarm:   require('../../assets/sfx/alarm-klaxon.mp3'),
-  // radio:   require('../../assets/sfx/radio-beep.mp3'),
+  success: require('../../assets/sfx/success-chime.m4a'),
+  error:   require('../../assets/sfx/error-buzz.m4a'),
+  click:   require('../../assets/sfx/glass-clink.m4a'),
+  drip:    require('../../assets/sfx/drip.m4a'),
+  clunk:   require('../../assets/sfx/locker-clunk.m4a'),
+  alarm:   require('../../assets/sfx/alarm-klaxon.m4a'),
+  radio:   require('../../assets/sfx/radio-beep.m4a'),
 };
 
 // ── State ───────────────────────────────────────────────────────────────────

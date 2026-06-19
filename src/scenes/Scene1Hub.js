@@ -11,6 +11,8 @@ import { useStageLayout } from '../engine/layout';
 import { useSpriteFrame } from '../engine/useSprite';
 import PixelDialog from '../ui/PixelDialog';
 import Terminal from '../ui/Terminal';
+import CrtOverlay from '../fx/CrtOverlay';
+import { FX } from '../fx/feedback';
 import {
   ROOMS, TERMINAL, TERMINAL_SCREEN,
   INTRO_DIALOG, FAREWELL_DIALOG,
@@ -22,7 +24,9 @@ const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0, frames: 15 }
 const LAMP_MAIN = { x: SCENE_W / 2, y: 8 };       // ceiling centre lamp
 const LAMP_TASKS = { x: 534, y: 8 };               // second lamp centred above task boxes
 const MOLAR_EXIT_X = -200;
-const WALK_SPEED = 7;
+const WALK_SPEED = 7;                          // legacy px per ~32ms frame
+const WALK_PX_S = WALK_SPEED * (1000 / 32);    // ≈ 219 px/s (frame-rate independent)
+const SHUTTER_PX_S = 5 * (1000 / 32);          // ≈ 156 px/s
 
 // Window behind the PC
 const WIN = { x: 205, y: 14, w: 230, h: 94 };
@@ -48,84 +52,99 @@ export default function Scene1Hub({
   const [pressed, setPressed] = useState(null);
   const blink = useSpriteFrame(2, 1.6);
 
-  // ── Molar walk-out ──────────────────────────────────────────────────────────
+  // ── Animated scene state ────────────────────────────────────────────────────
   const [molarX, setMolarX] = useState(MOLAR.x);
   const [molarLeaving, setMolarLeaving] = useState(false);
   const [molarGone, setMolarGone] = useState(introDone || alarmPending);
   const onIntroRef = useRef(onIntroDone);
   onIntroRef.current = onIntroDone;
 
-  useEffect(() => {
-    if (!molarLeaving) return;
-    const id = setInterval(() => {
-      setMolarX((x) => {
-        const next = x - WALK_SPEED;
-        if (next <= MOLAR_EXIT_X) {
-          clearInterval(id);
-          setMolarGone(true);
-          setMolarLeaving(false);
-          onIntroRef.current();
-          return MOLAR_EXIT_X;
-        }
-        return next;
-      });
-    }, 32);
-    return () => clearInterval(id);
-  }, [molarLeaving]);
-
-  // ── Molar bob while talking ─────────────────────────────────────────────────
   const [molarBobY, setMolarBobY] = useState(0);
   const dialogOpen = !!dialog;
-  useEffect(() => {
-    if (!dialogOpen) { setMolarBobY(0); return; }
-    let t = 0;
-    const id = setInterval(() => {
-      t += 32;
-      setMolarBobY(Math.sin((t / 2400) * Math.PI * 2) * 3);
-    }, 32);
-    return () => clearInterval(id);
-  }, [dialogOpen]);
 
-  // ── Emergency main lamp glow ────────────────────────────────────────────────
   const [glow, setGlow] = useState(0);
-  useEffect(() => {
-    if (!emergencyLight) { setGlow(0); return; }
-    let t = 0;
-    const period = danger ? 700 : 2000;
-    const lo = danger ? 0.40 : 0.28;
-    const hi = danger ? 0.75 : 0.55;
-    const id = setInterval(() => {
-      t += 32;
-      const phase = (Math.sin((t / period) * Math.PI * 2) + 1) / 2;
-      setGlow(lo + (hi - lo) * phase);
-    }, 32);
-    return () => clearInterval(id);
-  }, [emergencyLight, danger]);
-
-  // ── Second red lamp above task boxes (3 s delay after emergency) ────────────
   const [taskLamp, setTaskLamp] = useState(false);
-  const taskTimerRef = useRef(null);
-  useEffect(() => {
-    if (emergencyLight && !taskLamp) {
-      taskTimerRef.current = setTimeout(() => setTaskLamp(true), 3000);
-    }
-    return () => clearTimeout(taskTimerRef.current);
-  }, [emergencyLight]);
 
-  // ── Metal shutter over window ────────────────────────────────────────────────
   const alreadyClosed = introDone || alarmPending;
   const [shutterY, setShutterY] = useState(alreadyClosed ? SHUTTER_BOT : SHUTTER_TOP);
   const [shutterDone, setShutterDone] = useState(alreadyClosed);
+
+  // ── Single animation loop ───────────────────────────────────────────────────
+  // Replaces five separate setIntervals (walk, bob, glow, shutter, task-lamp
+  // delay). One requestAnimationFrame loop reads the latest flags via a ref and
+  // is frame-rate independent (dt-based), so timing matches on any device.
+  const molarXRef = useRef(MOLAR.x);
+  const bobRef = useRef(0);
+  const glowRef = useRef(0);
+  const shutterYRef = useRef(alreadyClosed ? SHUTTER_BOT : SHUTTER_TOP);
+  const emergStartRef = useRef(null);
+
+  const flags = useRef({});
+  flags.current = {
+    molarLeaving, molarGone, dialogOpen, emergencyLight, danger, shutterDone, taskLamp,
+  };
+
   useEffect(() => {
-    if (!emergencyLight || shutterDone) return;
-    let y = SHUTTER_TOP;
-    const id = setInterval(() => {
-      y += 5;
-      if (y >= SHUTTER_BOT) { clearInterval(id); setShutterY(SHUTTER_BOT); setShutterDone(true); }
-      else setShutterY(y);
-    }, 32);
-    return () => clearInterval(id);
-  }, [emergencyLight, shutterDone]);
+    let raf;
+    let last = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    // Push a value to state only when it actually changed → no idle re-renders.
+    const set = (ref, setter, val) => {
+      if (Math.abs(ref.current - val) > 0.01) { ref.current = val; setter(val); }
+    };
+    const loop = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const f = flags.current;
+
+      // Molar walks out, then hands control back to App.
+      if (f.molarLeaving && !f.molarGone) {
+        const x = molarXRef.current - WALK_PX_S * dt;
+        if (x <= MOLAR_EXIT_X) {
+          set(molarXRef, setMolarX, MOLAR_EXIT_X);
+          setMolarGone(true);
+          setMolarLeaving(false);
+          onIntroRef.current();
+        } else {
+          set(molarXRef, setMolarX, x);
+        }
+      }
+
+      // Gentle bob while talking.
+      set(bobRef, setMolarBobY, f.dialogOpen ? Math.sin((now / 2400) * Math.PI * 2) * 3 : 0);
+
+      // Emergency lamp pulse + the second lamp that joins 3 s later.
+      if (f.emergencyLight) {
+        if (emergStartRef.current == null) emergStartRef.current = now;
+        const period = f.danger ? 700 : 2000;
+        const lo = f.danger ? 0.40 : 0.28;
+        const hi = f.danger ? 0.75 : 0.55;
+        const phase = (Math.sin((now / period) * Math.PI * 2) + 1) / 2;
+        set(glowRef, setGlow, lo + (hi - lo) * phase);
+        if (!f.taskLamp && now - emergStartRef.current >= 3000) {
+          setTaskLamp(true);
+          FX.clunk();
+        }
+      } else {
+        set(glowRef, setGlow, 0);
+      }
+
+      // Steel shutter grinds down over the window, then slams shut.
+      if (f.emergencyLight && !f.shutterDone) {
+        const y = shutterYRef.current + SHUTTER_PX_S * dt;
+        if (y >= SHUTTER_BOT) {
+          set(shutterYRef, setShutterY, SHUTTER_BOT);
+          setShutterDone(true);
+          FX.clunk();
+        } else {
+          set(shutterYRef, setShutterY, y);
+        }
+      }
+
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   const target = ROOMS.find((r) => !solvedIds.includes(r.id)) || null;
   const busy = !!dialog || terminalOpen || molarLeaving;
@@ -137,6 +156,7 @@ export default function Scene1Hub({
   };
 
   const onDoor = (room) => {
+    FX.click();
     if (solvedIds.includes(room.id)) {
       setDialog({ speaker: 'Prof. Dr. Molar', lines: ['Diese Kammer ist bereits gelöst. Gut gemacht!'] });
     } else if (target && room.id === target.id) {
@@ -309,12 +329,15 @@ export default function Scene1Hub({
         </View>
       )}
 
+      {/* CRT scanline + vignette filter over the scene */}
+      <CrtOverlay />
+
       {!busy && (
         <>
           <Hotspot layout={L} rectObj={TERMINAL} color="#6fe87a"
             onIn={() => setPressed({ rect: TERMINAL, color: '#6fe87a' })}
             onOut={() => setPressed(null)}
-            onPress={() => setTerminalOpen(true)} />
+            onPress={() => { FX.click(); setTerminalOpen(true); }} />
           {ROOMS.map((r) => (
             <Hotspot key={r.key} layout={L} rectObj={r.rect} color={r.accent}
               onIn={() => setPressed({ rect: r.rect, color: r.accent })}

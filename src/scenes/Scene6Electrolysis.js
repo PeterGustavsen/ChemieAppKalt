@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import SceneShell from './SceneShell';
+import Chalkboard from '../fx/Chalkboard';
+import { FX } from '../fx/feedback';
 import { PUZZLES } from '../config/game';
 
 const P = PUZZLES[6];
@@ -21,25 +23,30 @@ export default function Scene6Electrolysis({ room, onBack, onReveal, initiallySo
   const n = Q / (Z * F);
   const solved = Math.abs(n - 0.5) < 1e-9 || initiallySolved;
 
-  useEffect(() => { if (solved) onReveal && onReveal(room.id); }, [solved]);
+  useEffect(() => {
+    if (!solved) return;
+    onReveal && onReveal(room.id);
+    if (!initiallySolved) FX.success();   // chime only on a fresh solve
+  }, [solved]);
 
   const clamp = (v) => Math.max(T_MIN, Math.min(T_MAX, v));
+  const step = (delta) => { FX.click(); setT((v) => clamp(v + delta)); };
 
   const renderOverlay = (L, { busy }) => {
     if (busy) return null;
     return (
       <View style={styles.wrap} pointerEvents="box-none">
-        <View style={[styles.panel, { borderColor: room.accent }]}>
+        <Chalkboard accent={room.accent}>
           <Text style={[styles.heading, { color: room.accent }]}>ELEKTROLYSE — KUPFER</Text>
           <Text style={styles.consts}>I = 9,65 A   F = 96500 C/mol</Text>
           <Text style={styles.goal}>ZIEL: 0,50 mol Cu abscheiden</Text>
 
           <View style={styles.stepper}>
-            <Pressable hitSlop={8} onPress={() => setT((v) => clamp(v + STEP))}>
+            <Pressable hitSlop={8} onPress={() => step(STEP)}>
               <Text style={styles.arrow}>▲</Text>
             </Pressable>
             <Text style={styles.tValue}>{t} s</Text>
-            <Pressable hitSlop={8} onPress={() => setT((v) => clamp(v - STEP))}>
+            <Pressable hitSlop={8} onPress={() => step(-STEP)}>
               <Text style={styles.arrow}>▼</Text>
             </Pressable>
           </View>
@@ -54,13 +61,13 @@ export default function Scene6Electrolysis({ room, onBack, onReveal, initiallySo
               <Text style={styles.value}>{comma(n, 3)} mol</Text>
             </View>
           </View>
-        </View>
+        </Chalkboard>
       </View>
     );
   };
 
   return (
-    <SceneShell room={room} bgSource={require('../../assets/scenes/scene_02_titration.png')}
+    <SceneShell room={room} bgSource={require('../../assets/scenes/scene_06_electrolysis.png')}
       introLines={P.intro} hintLines={P.hint} solved={solved}
       solvedLines={['Q = 9,65 · 10000 = 96500 C', 'n(Cu) = Q/(2·F) = 0,50 mol']}
       onBack={onBack} emergencyLight={emergencyLight} danger={danger}

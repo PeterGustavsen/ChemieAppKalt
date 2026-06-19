@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import SceneShell from './SceneShell';
+import Chalkboard from '../fx/Chalkboard';
+import { FX } from '../fx/feedback';
 import { PUZZLES } from '../config/game';
 
 const P = PUZZLES[7];
@@ -17,13 +19,23 @@ export default function Scene7Equilibrium({ room, onBack, onReveal, initiallySol
 
   const solved = pick === 64 || initiallySolved;
 
-  useEffect(() => { if (solved) onReveal && onReveal(room.id); }, [solved]);
+  useEffect(() => {
+    if (!solved) return;
+    onReveal && onReveal(room.id);
+    if (!initiallySolved) FX.success();   // chime only on a fresh solve
+  }, [solved]);
+
+  const choose = (opt) => {
+    if (opt === 64) { setPick(opt); return; }  // success chime fires via effect
+    FX.error();
+    setPick(opt);
+  };
 
   const renderOverlay = (L, { busy }) => {
     if (busy) return null;
     return (
       <View style={styles.wrap} pointerEvents="box-none">
-        <View style={[styles.panel, { borderColor: room.accent }]}>
+        <Chalkboard accent={room.accent}>
           <Text style={[styles.heading, { color: room.accent }]}>H₂ + I₂ ⇌ 2 HI</Text>
 
           <View style={styles.concBlock}>
@@ -44,7 +56,7 @@ export default function Scene7Equilibrium({ room, onBack, onReveal, initiallySol
               return (
                 <Pressable
                   key={opt}
-                  onPress={() => setPick(opt)}
+                  onPress={() => choose(opt)}
                   style={[
                     styles.optBtn,
                     { borderColor: sel ? room.accent : '#33405a' },
@@ -56,7 +68,7 @@ export default function Scene7Equilibrium({ room, onBack, onReveal, initiallySol
               );
             })}
           </View>
-        </View>
+        </Chalkboard>
       </View>
     );
   };
@@ -64,7 +76,7 @@ export default function Scene7Equilibrium({ room, onBack, onReveal, initiallySol
   return (
     <SceneShell
       room={room}
-      bgSource={require('../../assets/scenes/scene_03_cabinet.png')}
+      bgSource={require('../../assets/scenes/scene_07_equilibrium.png')}
       introLines={P.intro}
       hintLines={P.hint}
       solved={solved}
