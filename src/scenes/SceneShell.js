@@ -7,11 +7,16 @@ import {
 
 import { useStageLayout } from '../engine/layout';
 import { usePixelImage } from '../engine/usePixelImage';
+import { useSpriteFrame } from '../engine/useSprite';
 import PixelDialog from '../ui/PixelDialog';
+import CRTOverlay from '../ui/CRTOverlay';
 import { SCENE_W, SCENE_H } from '../config/game';
+import { FX } from '../fx/feedback';
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
 const LAMP = { x: SCENE_W / 2, y: 8 };
+// Über das gemalte Klemmbrett auf der Werkbank (Mitte unten) gelegt.
+const NOTE = { x: 286, y: 222, w: 68, h: 36 };
 
 export default function SceneShell({
   room, bgSource, introLines, hintLines, solved, solvedLines,
@@ -19,10 +24,14 @@ export default function SceneShell({
 }) {
   const L = useStageLayout();
   const bg = usePixelImage(bgSource);
-  const [dialog, setDialog] = useState(introLines ? { lines: introLines } : null);
+  // I4: Intro NICHT mehr automatisch als Vollbild-Box — antippbare Notiz im Bild.
+  const [dialog, setDialog] = useState(null);
   const [hintOpen, setHintOpen] = useState(false);
+  const [introRead, setIntroRead] = useState(false);
 
   const busy = !!dialog || hintOpen || solved;
+  const pulse = useSpriteFrame(40, 18);             // Aufmerksamkeit auf die Notiz
+  const noteGlow = !introRead && (pulse % 40) < 20;
 
   const [glow, setGlow] = useState(0.25);
   useEffect(() => {
@@ -38,6 +47,11 @@ export default function SceneShell({
     }, 32);
     return () => clearInterval(id);
   }, [emergencyLight, danger]);
+
+  const openIntro = () => { FX.click(); setIntroRead(true); setDialog({ lines: introLines }); };
+  const openHint = () => { FX.click(); setHintOpen(true); };
+
+  const note = L.toScreen(NOTE);
 
   return (
     <View style={styles.root}>
@@ -61,14 +75,26 @@ export default function SceneShell({
         </Group>
       </Canvas>
 
+      {/* CRT-Scanlines + Vignette über die ganze Bühne */}
+      <CRTOverlay L={L} intensity={emergencyLight ? 1 : 0.85} />
+
       {renderOverlay && renderOverlay(L, { busy })}
+
+      {/* I4: In-world Lab-Notiz als Intro-Einstieg (kein Auto-Vollbild) */}
+      {introLines && !busy && (
+        <Pressable style={[styles.note, note, noteGlow && styles.noteGlow]} onPress={openIntro}>
+          <View style={styles.notePin} />
+          <Text style={styles.noteHdr} numberOfLines={1}>LAB-NOTIZ</Text>
+          <Text style={styles.noteHint} numberOfLines={1}>▸ tippen</Text>
+        </Pressable>
+      )}
 
       <View style={styles.topbar} pointerEvents="box-none">
         <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={onBack}>
           <Text style={styles.tbTxt}>◀ TERMINAL</Text>
         </Pressable>
         <Text style={[styles.title, { color: room.accent }]}>{room.title.toUpperCase()}</Text>
-        <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={() => setHintOpen(true)}>
+        <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={openHint}>
           <Text style={styles.tbTxt}>HINWEIS ?</Text>
         </Pressable>
       </View>
@@ -109,6 +135,18 @@ const styles = StyleSheet.create({
   tbPressed: { backgroundColor: 'rgba(111,211,221,0.18)' },
   tbTxt: { color: '#6fd3dd', fontFamily: 'monospace', fontSize: 11, fontWeight: 'bold' },
   title: { fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', letterSpacing: 1, textShadowColor: '#000', textShadowRadius: 4 },
+  // In-world torn note
+  note: {
+    position: 'absolute', backgroundColor: '#ece3c8',
+    borderWidth: 1, borderColor: '#c8bd9a',
+    alignItems: 'center', justifyContent: 'center',
+    transform: [{ rotate: '-3deg' }],
+    shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 3, shadowOffset: { width: 1, height: 2 },
+  },
+  noteGlow: { borderColor: '#f0b23a', shadowColor: '#f0b23a', shadowOpacity: 0.9, shadowRadius: 6 },
+  notePin: { position: 'absolute', top: -4, alignSelf: 'center', width: 7, height: 7, borderRadius: 4, backgroundColor: '#d4302a', borderWidth: 1, borderColor: '#8c1410' },
+  noteHdr: { color: '#5a4f2a', fontFamily: 'monospace', fontSize: 9, fontWeight: 'bold', letterSpacing: 1 },
+  noteHint: { color: '#8a7a4a', fontFamily: 'monospace', fontSize: 7, letterSpacing: 1, marginTop: 1 },
   solvedWrap: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(5,7,12,0.72)' },
   solvedBox: { backgroundColor: '#0d0f17', borderWidth: 4, padding: 22, alignItems: 'center', maxWidth: 460 },
   solvedKick: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 12, letterSpacing: 3, fontWeight: 'bold' },
