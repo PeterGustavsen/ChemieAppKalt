@@ -1,191 +1,142 @@
 """
-Szene 1 — Molars Labor (Hub). 640x360, Licht oben-links.
-Komposition:
-  LINKS   : Periodensystem-Poster, Glaswaren-Bank (Molar steht hier, App-Sprite)
-  MITTE   : Haupt-Terminal (CRT mit Phosphor-Gluehen) auf Stahltisch
-  RECHTS  : 2x2 Raum-Tueren zu den 4 Raetselraeumen (Drop/Waage/Atom/Kolben)
+Szene 1 — Molars Labor (Hub), NEUE Komposition. 640x360, Licht oben-links.
+  OBEN     : 6 Wandschraenke in einem 3x2-Raster (je Raum ein Akzent + Icon)
+  UNTEN    : Konsolen-Pult mittig mit CRT-Screen (App malt Status/Codes hinein)
 
-Das Terminal-Screen-Feld und die Tuer-Status (LED/Schloss) werden in der App
-dynamisch dargestellt; hier nur Gehaeuse/Rahmen + dunkler Screen + Default-Icons.
+Tap-Rects sind deckungsgleich mit ROOMS in src/config/game.js (Handoff #1):
+Die Schrankgrafik ist so eingerueckt, dass die Rects exakt auf dem Schrank liegen.
+Status-LED + Icon werden in der App eingefaerbt; hier Default-Gehaeuse + Icon.
 
-Exportiert assets/scenes/scene_01_lab_hub.png  (+ _preview.png).
-Hotspot-Koordinaten siehe HOTSPOTS unten (deckungsgleich mit src/scenes config).
+Exportiert assets/scenes/scene_01_lab_hub.png (+ _preview.png) + scene_01_hotspots.json.
 """
 import os, json
 from palette import (WALL, FLOOR, GROUT, WOOD, BRASS, STEEL, GLASS, GLASS_HI,
-                     ACID, BASE, PINK, PURPLE, ORANGE, CRT, CRT_AMBER, GLOW,
-                     INK, INK_SOFT, WHITE)
+                     CRT, GLOW, INK, INK_SOFT, WHITE)
 import pixel_helpers as H
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "scenes")
 W, Hh = H.SCENE_W, H.SCENE_H
 FLOOR_Y = 250
 
-# Deckungsgleich mit der App (src/scenes/scene1.config)
+# Deckungsgleich mit der App (src/config/game.js) — Handoff #1
 HOTSPOTS = {
-    "terminal": {"x": 246, "y": 120, "w": 150, "h": 150},
-    # 3x2 Tueren rechts (deckungsgleich mit ROOMS in src/config/game.js)
-    "door1":    {"x": 404, "y": 60,  "w": 72, "h": 104},   # Saeure-Base / Puffer
-    "door2":    {"x": 482, "y": 60,  "w": 72, "h": 104},   # Redox
-    "door3":    {"x": 560, "y": 60,  "w": 72, "h": 104},   # Elektrochemie
-    "door4":    {"x": 404, "y": 176, "w": 72, "h": 104},   # Organik
-    "door5":    {"x": 482, "y": 176, "w": 72, "h": 104},   # Elektrolyse
-    "door6":    {"x": 560, "y": 176, "w": 72, "h": 104},   # Gleichgewicht
+    "door1": {"x": 44,  "y": 56,  "w": 104, "h": 76},
+    "door2": {"x": 268, "y": 56,  "w": 104, "h": 76},
+    "door3": {"x": 492, "y": 56,  "w": 104, "h": 76},
+    "door4": {"x": 44,  "y": 158, "w": 104, "h": 76},
+    "door5": {"x": 268, "y": 158, "w": 104, "h": 76},
+    "door6": {"x": 492, "y": 158, "w": 104, "h": 76},
+    "console": {"x": 258, "y": 262, "w": 124, "h": 70},
+}
+
+# Akzentfarben je Schrank (Reihenfolge = door1..door6 = scene2..7)
+ACC = {
+    "door1": (111, 211, 221),   # Galvanische Zelle  #6fd3dd
+    "door2": (227, 111, 176),   # Opferanode         #e36fb0
+    "door3": (224, 180, 76),    # Rosten             #e0b44c
+    "door4": (150, 96, 200),    # Bromonium          #9660c8
+    "door5": (111, 224, 138),   # Bromwasser         #6fe08a
+    "door6": (240, 178, 58),    # Isomerie E/Z       #f0b23a
+}
+ICON = {
+    "door1": "battery", "door2": "nail", "door3": "rust",
+    "door4": "bridge",  "door5": "tube", "door6": "ez",
 }
 
 
-# ----------------------------------------------------------------------
 def draw_wall(img, d):
     H.vgradient(img, 0, 0, W, FLOOR_Y, WALL[1], WALL[0])
-    # Fliesenraster 32px
     for x in range(0, W, 32):
         H.vline(d, x, 0, FLOOR_Y, WALL[0])
     for y in range(0, FLOOR_Y, 32):
         H.hline(d, 0, y, W, WALL[0])
-    # Sockelleiste
     H.rect(d, 0, FLOOR_Y - 6, W, 6, WALL[2])
-    H.rect(d, 0, FLOOR_Y - 6, W, 2, GLOW[0])  # Lichtkante
+    H.rect(d, 0, FLOOR_Y - 6, W, 2, GLOW[0])
 
 
 def draw_floor(img, d):
     H.tile_floor(img, 0, FLOOR_Y, W, Hh - FLOOR_Y, FLOOR, tile=32, grout=GROUT)
-    # Lichtschein vorne (Lampe oben)
-    H.dither_rect(img, 200, FLOOR_Y, 260, 30, FLOOR[2], FLOOR[1], 0.4)
+    H.dither_rect(img, 200, FLOOR_Y, 240, 26, FLOOR[2], FLOOR[1], 0.4)
 
 
 def draw_lamp(img, d):
-    # Deckenlampe mittig oben -> Lichtkegel
     H.rect(d, W // 2 - 36, 0, 72, 8, STEEL[0])
     H.rect(d, W // 2 - 28, 8, 56, 6, GLOW[1])
     H.blend_poly(img, [(W // 2 - 28, 14), (W // 2 + 28, 14),
-                       (W // 2 + 70, 120), (W // 2 - 70, 120)], GLOW[1], 26)
+                       (W // 2 + 80, 150), (W // 2 - 80, 150)], GLOW[1], 22)
 
 
-def draw_poster(img, d):
-    # Periodensystem-Mini-Poster (Deko, Hinweis auf Raum PSE)
-    x, y, w, h = 26, 30, 130, 86
-    H.rect(d, x - 3, y - 3, w + 6, h + 6, WOOD[0])      # Rahmen
-    H.rect(d, x, y, w, h, STEEL[0])
-    for r in range(6):
-        for c in range(9):
-            cell = PURPLE[0] if (r + c) % 5 == 0 else STEEL[1]
-            H.rect(d, x + 4 + c * 14, y + 4 + r * 13, 12, 11, cell)
-    H.rect(d, x + 6, y - 2, 40, 8, INK_SOFT)
-    H.hline(d, x + 8, y + 2, 30, CRT[2])               # "PSE" Schildchen-Glow
+def draw_icon(img, d, kind, cx, cy, acc):
+    if kind == "battery":                              # galvanische Zelle
+        H.rect(d, cx - 11, cy - 7, 22, 15, STEEL[1]); H.outline(d, cx - 11, cy - 7, 22, 15, INK)
+        H.rect(d, cx + 11, cy - 3, 3, 6, STEEL[2])
+        H.rect(d, cx - 7, cy - 1, 5, 2, acc); H.rect(d, cx - 5, cy - 3, 2, 6, acc)  # +
+        H.rect(d, cx + 2, cy - 1, 5, 2, acc)                                          # -
+    elif kind == "nail":                               # Opferanode (Nagel im Tropfen)
+        d.ellipse([cx - 12, cy - 6, cx + 12, cy + 8], outline=acc)
+        H.rect(d, cx - 1, cy - 9, 3, 16, STEEL[2]); H.rect(d, cx - 3, cy - 9, 7, 3, STEEL[2])
+    elif kind == "rust":                               # Rosten (Tropfen + Rostkante)
+        d.ellipse([cx - 11, cy - 8, cx + 11, cy + 8], fill=GLASS[0])
+        d.arc([cx - 11, cy - 8, cx + 11, cy + 8], 20, 160, fill=acc)
+        H.rect(d, cx - 2, cy - 2, 4, 4, acc)
+    elif kind == "bridge":                             # Bromonium-Bruecke
+        d.arc([cx - 11, cy - 4, cx + 11, cy + 14], 180, 360, fill=acc)
+        H.rect(d, cx - 11, cy + 4, 5, 4, STEEL[2]); H.rect(d, cx + 6, cy + 4, 5, 4, STEEL[2])
+        img.putpixel((cx, cy - 4), (*WHITE, 200))
+    elif kind == "tube":                               # Reagenzglas
+        H.rect(d, cx - 5, cy - 10, 10, 18, GLASS[1]);
+        d.ellipse([cx - 5, cy + 4, cx + 5, cy + 10], fill=acc)
+        H.rect(d, cx - 5, cy + 2, 10, 6, acc); H.outline(d, cx - 5, cy - 10, 10, 18, INK_SOFT)
+        H.rect(d, cx - 6, cy - 11, 12, 3, BRASS[2])
+    elif kind == "ez":                                 # E/Z Doppelbindung
+        H.hline(d, cx - 10, cy - 2, 20, acc); H.hline(d, cx - 10, cy + 1, 20, acc)
+        H.rect(d, cx - 12, cy - 5, 4, 4, STEEL[2]); H.rect(d, cx + 8, cy + 1, 4, 4, STEEL[2])
+        H.rect(d, cx - 12, cy + 1, 4, 4, STEEL[1]); H.rect(d, cx + 8, cy - 5, 4, 4, STEEL[1])
 
 
-def draw_shelf(img, d):
-    # Wandregal mit Glaswaren links-mitte
-    sx, sy, sw = 18, 150, 200
-    H.rect(d, sx, sy, sw, 6, WOOD[1])
-    H.rect(d, sx, sy, sw, 2, WOOD[2])
-    H.soft_shadow(img, sx + sw // 2, sy + 8, sw // 2, 3, 50)
-    glas = [(sx + 12, ACID), (sx + 44, BASE), (sx + 78, PINK),
-            (sx + 112, GLASS), (sx + 150, ORANGE)]
-    for gx, ramp in glas:
-        draw_beaker(img, d, gx, sy - 26, ramp)
-
-
-def draw_beaker(img, d, x, y, liquid):
-    # kleines Becherglas mit Fluessigkeit
-    w, h = 18, 24
-    H.rect(d, x, y, w, h, GLASS[0])
-    H.dither_rect(img, x + 1, y + 2, w - 2, h - 3, GLASS[1], GLASS[0], 0.4)
-    H.rect(d, x + 2, y + h - 12, w - 4, 10, liquid[-1])     # Fuellung
-    H.rect(d, x + 2, y + h - 12, w - 4, 2, liquid[0])
-    H.vline(d, x + 3, y + 2, h - 5, GLASS_HI)               # Glanzkante
-    H.outline(d, x, y, w, h, INK_SOFT)
-    img.putpixel((x + 3, y + 3), (*GLASS_HI, 200))
-
-
-def draw_terminal(img, d):
-    hs = HOTSPOTS["terminal"]
-    x, y, w, h = hs["x"], hs["y"], hs["w"], hs["h"]
-    # Tisch
-    H.rect(d, x - 30, y + h - 6, w + 60, Hh - (y + h - 6) - 20, WOOD[1])
-    H.rect(d, x - 30, y + h - 6, w + 60, 4, WOOD[2])
-    H.soft_shadow(img, x + w // 2, y + h + 4, w // 2 + 20, 6, 70)
-    # Gehaeuse (Stahl, CRT)
-    H.rect(d, x, y, w, h, STEEL[1])
-    H.outline(d, x, y, w, h, INK)
-    H.rect(d, x, y, w, 3, STEEL[2])                  # Lichtkante oben
-    H.dither_rect(img, x + w - 16, y + 4, 14, h - 8, STEEL[1], STEEL[0], 0.6)
-    # Bildschirm-Vertiefung
-    sx, sy, sw, sh = x + 12, y + 12, w - 24, h - 44
-    H.rect(d, sx - 2, sy - 2, sw + 4, sh + 4, INK)
-    H.rect(d, sx, sy, sw, sh, CRT[0])                # dunkles Phosphor (App malt Inhalt)
-    # Phosphor-Gluehen
-    H.dither_rect(img, sx, sy, sw, sh, CRT[0], (*CRT[1],), 0.18)
-    for ly in range(sy, sy + sh, 2):
-        H.hline(d, sx, ly, sw, (*CRT[0], 255))       # Scanlines
-    # Glanz oben-links auf Glas
-    d.polygon([(sx, sy), (sx + 26, sy), (sx, sy + 22)], fill=(*GLASS_HI, 40))
-    # Tastatur auf dem Tisch
-    ky = y + h + 4
-    H.rect(d, x + 6, ky, w - 12, 14, STEEL[0])
-    H.rect(d, x + 6, ky, w - 12, 2, STEEL[2])
-    for kx in range(x + 12, x + w - 12, 10):
-        H.rect(d, kx, ky + 4, 7, 6, STEEL[1])
-    # Standfuss
-    H.rect(d, x + w // 2 - 8, y + h - 2, 16, 8, STEEL[0])
-
-
-THEMES = [  # (icon, accent) fuer die 6 Tueren
-    ("drop", PINK), ("atom", BRASS), ("battery", BASE),
-    ("flask", ACID), ("bolt", ORANGE), ("balance", PURPLE),
-]
-
-
-def draw_icon(img, d, kind, cx, cy, accent):
-    if kind == "drop":
-        d.polygon([(cx, cy - 9), (cx + 7, cy + 4), (cx - 7, cy + 4)], fill=accent[-1])
-        d.ellipse([cx - 7, cy - 1, cx + 7, cy + 9], fill=accent[-1])
-        img.putpixel((cx - 3, cy), (*WHITE, 180))
-    elif kind == "balance":
-        H.vline(d, cx, cy - 9, 18, BRASS[2]); H.hline(d, cx - 11, cy - 7, 23, BRASS[2])
-        H.rect(d, cx - 15, cy - 5, 8, 4, BRASS[1]); H.rect(d, cx + 8, cy - 5, 8, 4, BRASS[1])
-        H.rect(d, cx - 4, cy + 9, 8, 3, BRASS[1])
-    elif kind == "atom":
-        d.ellipse([cx - 10, cy - 5, cx + 10, cy + 5], outline=accent[-1])
-        d.ellipse([cx - 5, cy - 10, cx + 5, cy + 10], outline=accent[-1])
-        H.rect(d, cx - 2, cy - 2, 4, 4, CRT_AMBER)
-    elif kind == "flask":
-        d.polygon([(cx - 3, cy - 9), (cx + 3, cy - 9), (cx + 8, cy + 8),
-                   (cx - 8, cy + 8)], fill=GLASS[1])
-        H.rect(d, cx - 6, cy + 2, 12, 6, accent[-1])
-        H.rect(d, cx - 3, cy - 11, 6, 3, GLASS[2])
-    elif kind == "battery":
-        H.rect(d, cx - 9, cy - 6, 18, 13, STEEL[1])      # Gehaeuse
-        H.outline(d, cx - 9, cy - 6, 18, 13, INK)
-        H.rect(d, cx + 9, cy - 2, 3, 5, STEEL[2])        # Pluspol-Kappe
-        H.rect(d, cx - 6, cy - 1, 4, 2, accent[-1])      # +
-        H.rect(d, cx - 5, cy - 2, 2, 4, accent[-1])
-        H.rect(d, cx + 2, cy - 1, 4, 2, accent[-1])      # -
-    elif kind == "bolt":
-        d.polygon([(cx + 2, cy - 10), (cx - 6, cy + 1), (cx - 1, cy + 1),
-                   (cx - 3, cy + 10), (cx + 6, cy - 2), (cx + 1, cy - 2)],
-                  fill=accent[-1])
-
-
-def draw_door(img, d, key, theme):
+def draw_cabinet(img, d, key):
     hs = HOTSPOTS[key]
     x, y, w, h = hs["x"], hs["y"], hs["w"], hs["h"]
-    icon, accent = theme
-    # Tuerrahmen (Stahlluke)
-    H.rect(d, x, y, w, h, STEEL[0])
-    H.outline(d, x, y, w, h, INK)
+    acc = ACC[key]
+    H.soft_shadow(img, x + w // 2, y + h + 4, w // 2, 5, 60)
+    # Gehaeuse
+    H.rect(d, x, y, w, h, STEEL[0]); H.outline(d, x, y, w, h, INK)
     H.rect(d, x + 4, y + 4, w - 8, h - 8, STEEL[1])
-    H.rect(d, x + 4, y + 4, w - 8, 2, STEEL[2])           # Lichtkante
-    H.dither_rect(img, x + w - 14, y + 6, 10, h - 12, STEEL[1], STEEL[0], 0.6)
-    # Sichtfenster
-    H.rect(d, x + 14, y + 12, w - 28, 30, INK_SOFT)
-    H.dither_rect(img, x + 16, y + 14, w - 32, 26, accent[0], INK_SOFT, 0.25)
-    # Icon-Plakette
-    draw_icon(img, d, icon, x + w // 2, y + 64, accent)
-    # Griff
-    H.rect(d, x + w - 16, y + h // 2, 6, 14, BRASS[2])
-    # Status-LED-Sockel (App malt Farbe rein)
-    H.rect(d, x + 10, y + h - 14, 8, 8, INK)
+    H.rect(d, x + 4, y + 4, w - 8, 2, STEEL[2])              # Lichtkante oben
+    H.dither_rect(img, x + w - 16, y + 6, 10, h - 12, STEEL[1], STEEL[0], 0.6)
+    # Sichtfenster oben (accent-getoent)
+    H.rect(d, x + 12, y + 10, w - 24, 22, INK_SOFT)
+    H.dither_rect(img, x + 14, y + 12, w - 28, 18, acc, INK_SOFT, 0.22)
+    H.outline(d, x + 12, y + 10, w - 24, 22, INK)
+    # Etched icon (accent)
+    draw_icon(img, d, ICON[key], x + w // 2, y + 50, acc)
+    # Griff rechts + Status-LED-Sockel (App malt Farbe)
+    H.rect(d, x + w - 14, y + h // 2 - 6, 6, 16, BRASS[2])
+    H.rect(d, x + 12, y + h - 14, 8, 8, INK)
+    img.putpixel((x + 13, y + h - 13), (*acc, 120))
+
+
+def draw_console(img, d):
+    hs = HOTSPOTS["console"]
+    sx, sy, sw, sh = hs["x"], hs["y"], hs["w"], hs["h"]
+    # Pult (Holz) unter dem Screen, ueber die ganze Mitte
+    dx, dw = sx - 40, sw + 80
+    H.soft_shadow(img, sx + sw // 2, sy + sh + 8, dw // 2, 7, 80)
+    H.rect(d, dx, sy - 10, dw, sh + 26, WOOD[1])
+    H.rect(d, dx, sy - 10, dw, 4, WOOD[2])
+    H.rect(d, dx, sy + sh + 12, dw, 4, WOOD[0])
+    # Screen-Gehaeuse + dunkles Phosphor (App malt Inhalt)
+    H.rect(d, sx - 4, sy - 4, sw + 8, sh + 8, STEEL[1]); H.outline(d, sx - 4, sy - 4, sw + 8, sh + 8, INK)
+    H.rect(d, sx, sy, sw, sh, CRT[0])
+    H.dither_rect(img, sx, sy, sw, sh, CRT[0], CRT[1], 0.16)
+    for ly in range(sy, sy + sh, 2):
+        H.hline(d, sx, ly, sw, (2, 14, 8))
+    d.polygon([(sx, sy), (sx + 24, sy), (sx, sy + 20)], fill=(*GLASS_HI, 36))
+    # Tastatur vorne
+    ky = sy + sh + 14
+    H.rect(d, sx + 6, ky, sw - 12, 12, STEEL[0]); H.rect(d, sx + 6, ky, sw - 12, 2, STEEL[2])
+    for kx in range(sx + 12, sx + sw - 12, 10):
+        H.rect(d, kx, ky + 3, 7, 5, STEEL[1])
 
 
 def build():
@@ -194,17 +145,14 @@ def build():
     draw_wall(img, d)
     draw_floor(img, d)
     draw_lamp(img, d)
-    draw_poster(img, d)
-    draw_shelf(img, d)
-    draw_terminal(img, d)
-    for key, theme in zip(
-        ["door1", "door2", "door3", "door4", "door5", "door6"], THEMES):
-        draw_door(img, d, key, theme)
+    for key in ["door1", "door2", "door3", "door4", "door5", "door6"]:
+        draw_cabinet(img, d, key)
+    draw_console(img, d)
     H.save_png(img, os.path.join(OUT, "scene_01_lab_hub.png"))
     H.save_preview(img, os.path.join(OUT, "scene_01_lab_hub_preview.png"), 2)
     with open(os.path.join(os.path.dirname(__file__), "scene_01_hotspots.json"), "w") as f:
         json.dump(HOTSPOTS, f, indent=2)
-    print("scene_01_lab_hub.png  640x360 OK")
+    print("scene_01_lab_hub.png 640x360 OK")
 
 
 if __name__ == "__main__":

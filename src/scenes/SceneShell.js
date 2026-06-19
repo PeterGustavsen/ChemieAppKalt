@@ -10,6 +10,7 @@ import { usePixelImage } from '../engine/usePixelImage';
 import { useSpriteFrame } from '../engine/useSprite';
 import PixelDialog from '../ui/PixelDialog';
 import CRTOverlay from '../ui/CRTOverlay';
+import ClipboardNote from '../ui/ClipboardNote';
 import { SCENE_W, SCENE_H } from '../config/game';
 import { FX } from '../fx/feedback';
 
@@ -80,13 +81,9 @@ export default function SceneShell({
 
       {renderOverlay && renderOverlay(L, { busy })}
 
-      {/* I4: In-world Lab-Notiz als Intro-Einstieg (kein Auto-Vollbild) */}
+      {/* I4: In-world Lab-Notiz (Klemmbrett) als Intro-Einstieg (kein Auto-Vollbild) */}
       {introLines && !busy && (
-        <Pressable style={[styles.note, note, noteGlow && styles.noteGlow]} onPress={openIntro}>
-          <View style={styles.notePin} />
-          <Text style={styles.noteHdr} numberOfLines={1}>LAB-NOTIZ</Text>
-          <Text style={styles.noteHint} numberOfLines={1}>▸ tippen</Text>
-        </Pressable>
+        <ClipboardNote rect={note} label="LAB-NOTIZ" glow={noteGlow} onPress={openIntro} />
       )}
 
       <View style={styles.topbar} pointerEvents="box-none">
