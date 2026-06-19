@@ -9,52 +9,66 @@ export const TERMINAL_SCREEN = { x: 258, y: 132, w: 126, h: 106 };
 export const ROOMS = [
   {
     id: 1, key: 'door1', scene: 2,
-    title: 'Titrationskammer', theme: 'Saeure / Base',
+    title: 'Pufferplatz', theme: 'Saeure-Base',
     accent: '#e36fb0',
-    code: '23',
-    rect: { x: 440, y: 60, w: 88, h: 104 },
-    examine: 'Eine Buerette ueber einem Erlenmeyerkolben. Titriere bis zum Umschlagpunkt.',
+    code: '575',
+    rect: { x: 404, y: 60, w: 72, h: 104 },
+    examine: 'Bechergläser mit Essigsäure und Acetat. Stelle den Puffer auf den geforderten pH ein.',
   },
   {
     id: 2, key: 'door2', scene: 3,
     title: 'Reagenzschrank', theme: 'Redox',
     accent: '#e0b44c',
     code: '17',
-    rect: { x: 540, y: 60, w: 88, h: 104 },
+    rect: { x: 482, y: 60, w: 72, h: 104 },
     examine: 'Eine tiefviolette Permanganat-Loesung neben einer Eisen(II)-Probe. Werte die Redox-Reaktion aus.',
   },
   {
     id: 3, key: 'door3', scene: 4,
-    title: 'Periodensystem', theme: 'Atombau',
-    accent: '#9660c8',
-    code: '109',
-    rect: { x: 440, y: 176, w: 88, h: 104 },
-    examine: 'Die grosse PSE-Wandtafel. Finde die Elemente nach ihren Eigenschaften.',
+    title: 'Zellenbank', theme: 'Elektrochemie',
+    accent: '#5a8fe0',
+    code: '1100',
+    rect: { x: 560, y: 60, w: 72, h: 104 },
+    examine: 'Metallelektroden und Salzbrücken. Baue die galvanische Zelle mit der geforderten Spannung.',
   },
   {
     id: 4, key: 'door4', scene: 5,
     title: 'Apparate-Tisch', theme: 'Organik',
     accent: '#6fe08a',
-    code: '147',
-    rect: { x: 540, y: 176, w: 88, h: 104 },
-    examine: 'Glasapparatur ueber einem Bunsenbrenner. Reaktionsmechanismus aufbauen.',
+    code: '482',
+    rect: { x: 404, y: 176, w: 72, h: 104 },
+    examine: 'Kolben mit Säuren und Alkoholen. Führe die richtige Veresterung durch.',
+  },
+  {
+    id: 5, key: 'door5', scene: 6,
+    title: 'Elektrolyse-Wanne', theme: 'Elektrolyse',
+    accent: '#e0863a',
+    code: '10000',
+    rect: { x: 482, y: 176, w: 72, h: 104 },
+    examine: 'Eine Elektrolysezelle mit Kupfersalz. Scheide die geforderte Stoffmenge ab.',
+  },
+  {
+    id: 6, key: 'door6', scene: 7,
+    title: 'GG-Reaktor', theme: 'Gleichgewicht',
+    accent: '#9660c8',
+    code: '64',
+    rect: { x: 560, y: 176, w: 72, h: 104 },
+    examine: 'Ein geschlossener Reaktor. Bestimme die Gleichgewichtskonstante Kc.',
   },
 ];
 
 export const PUZZLES = {
   2: {
     intro: [
-      'Salzsaeure unbekannter Konzentration im Kolben, Phenolphthalein als Indikator.',
-      'In der Buerette ist 0,1-molare Natronlauge. Titriere bis zum Umschlag!',
-      'Beim ersten bleibenden Rosaton ist der Aequivalenzpunkt erreicht. Lies das Volumen ab.',
+      'Ein Acetat-Puffer: Essigsäure (HAc) und Acetat-Ionen (Ac⁻) in Lösung.',
+      'pKs(Essigsäure) = 4,75. Stelle die Konzentrationen so ein, dass pH = 5,75 wird.',
+      'Henderson-Hasselbalch: pH = pKs + log( c(Ac⁻) / c(HAc) ). Der pH ergibt den Code.',
     ],
     hint: [
-      'Phenolphthalein ist im Sauren farblos, im Basischen pink (Umschlag pH ~8,2).',
-      'Tropfe langsam — am Aequivalenzpunkt genuegt EIN Tropfen fuer den Umschlag.',
-      'Das abgelesene Volumen in mL (ohne Komma) ist dein Code.',
+      'Du brauchst log( c(Ac⁻)/c(HAc) ) = +1, also Verhältnis 10 : 1.',
+      'z. B. c(Ac⁻) = 0,10 mol/L und c(HAc) = 0,010 mol/L.',
+      'pH = 4,75 + 1 = 5,75  ->  Code 575.',
     ],
-    equivalence: 23.0,
-    fineStep: 0.5, coarseStep: 2.0, overshoot: 24.5,
   },
   3: {
     intro: [
@@ -70,34 +84,50 @@ export const PUZZLES = {
   },
   4: {
     intro: [
-      'Die Wandtafel des Periodensystems. Zwei Elemente sind gesucht.',
-      'Tippe das jeweils passende Element an — die Ordnungszahlen ergeben den Code.',
+      'Eine galvanische Zelle. Wähle Anode und Kathode aus den Metallen.',
+      'Standardpotenziale: Zn −0,76 V · Fe −0,44 V · Cu +0,34 V · Ag +0,80 V.',
+      'Baue die Zelle mit EMK = 1,10 V. Die EMK in mV ergibt den Code.',
     ],
     hint: [
-      'Edelgase stehen in Gruppe 18 (letzte Spalte), Halogene in Gruppe 17.',
-      'Die 2. Periode ist die zweite Zeile (Li bis Ne).',
-      'Neon = 10, Fluor = 9  ->  Code 109.',
-    ],
-    clues: [
-      { text: 'Edelgas der 2. Periode', symbol: 'Ne', z: 10 },
-      { text: 'Leichtestes Halogen', symbol: 'F', z: 9 },
+      'EMK = E°(Kathode) − E°(Anode), die Anode ist das unedlere Metall.',
+      'Für 1,10 V: Anode Zn (−0,76 V), Kathode Cu (+0,34 V).',
+      'EMK = 0,34 − (−0,76) = 1,10 V = 1100 mV  ->  Code 1100.',
     ],
   },
   5: {
     intro: [
-      'Drei C₂-Molekuele. Erkenne die funktionellen Gruppen.',
-      'Klicke sie in der Reihenfolge STEIGENDER Oxidationszahl des Kohlenstoffs.',
-      'Jedes Molekuel traegt eine Ziffer — die richtige Reihenfolge ergibt den Code.',
+      'Veresterung: eine Carbonsäure reagiert mit einem Alkohol zum Ester (+ Wasser).',
+      'Wähle Säure und Alkohol so, dass der Ester C₄H₈O₂ entsteht.',
+      'Code = Anzahl(C)·100 + Anzahl(H)·10 + Anzahl(O) des Esters.',
     ],
     hint: [
-      'Oxidationsreihe: Alkohol  ->  Aldehyd  ->  Carbonsaeure.',
-      'Also: Ethanol (-OH), dann Ethanal (-CHO), dann Essigsaeure (-COOH).',
-      'Die Ziffern in dieser Reihenfolge: 1, 4, 7.',
+      'C₄H₈O₂ hat 4 C-Atome: Säure und Alkohol liefern zusammen 4 C.',
+      'Propansäure (3 C) + Methanol (1 C) → Methylpropanoat, C₄H₈O₂.',
+      'Code = 4·100 + 8·10 + 2 = 482.',
     ],
-    molecules: [
-      { name: 'Ethanol', group: '-OH', formula: 'C₂H₅OH', digit: '1', order: 0 },
-      { name: 'Essigsaeure', group: '-COOH', formula: 'CH₃COOH', digit: '7', order: 2 },
-      { name: 'Ethanal', group: '-CHO', formula: 'CH₃CHO', digit: '4', order: 1 },
+  },
+  6: {
+    intro: [
+      'Elektrolyse einer Kupfersalz-Lösung: Cu²⁺ + 2 e⁻ → Cu.',
+      'Konstanter Strom I = 9,65 A, Faraday-Konstante F = 96500 C/mol.',
+      'Stelle die Zeit so ein, dass 0,50 mol Cu abgeschieden werden. t in s ergibt den Code.',
+    ],
+    hint: [
+      'Ladung Q = I · t. Stoffmenge n(Cu) = Q / (z · F) mit z = 2.',
+      'Für 0,50 mol: Q = 0,50 · 2 · 96500 = 96500 C.',
+      't = Q / I = 96500 / 9,65 = 10000 s  ->  Code 10000.',
+    ],
+  },
+  7: {
+    intro: [
+      'Geschlossener Reaktor im Gleichgewicht: H₂ + I₂ ⇌ 2 HI.',
+      'Im Gleichgewicht: c(HI) = 0,8 mol/L, c(H₂) = c(I₂) = 0,1 mol/L.',
+      'Bestimme die Gleichgewichtskonstante Kc. Ihr Wert ist der Code.',
+    ],
+    hint: [
+      'Kc = c(HI)² / ( c(H₂) · c(I₂) ).',
+      'Setze ein: 0,8² / (0,1 · 0,1) = 0,64 / 0,01.',
+      'Kc = 64  ->  Code 64.',
     ],
   },
 };
@@ -120,7 +150,7 @@ export const FAREWELL_DIALOG = [
 export const ALARM_LINES = [
   '[!] SICHERHEITSALARM AUSGELÖST [!]',
   'EINDRINGLING ERKANNT — LABOR VERRIEGELT',
-  'Lösen Sie alle vier verschlüsselten Stationen.',
+  'Lösen Sie alle sechs verschlüsselten Stationen.',
   'Geben Sie die Codes am Terminal ein.',
   'Zeit bis zur Notabschaltung: 20 Minuten.',
 ];
@@ -128,7 +158,7 @@ export const ALARM_LINES = [
 export const WIN_DIALOG = [
   'Ich bins, Molar. Vermutlich. Lassen Sie sich nicht täuschen, falls jemand behauptet, ich zu sein.',
   'Die Verriegelung... ja. Das war ich. Beim Rausgehen habe ich den falschen Knopf gedrückt.',
-  'ABER — Sie haben alle vier Verschlüsselungen geknackt. Das beweist: Sie sind ein echter Chemiker.',
+  'ABER — Sie haben alle sechs Verschlüsselungen geknackt. Das beweist: Sie sind ein echter Chemiker.',
   'Willkommen im Team. Sagen Sie aber niemandem, was Sie hier gesehen haben. Vor allem nicht den Diensten.',
 ];
 
@@ -152,17 +182,17 @@ export const RADIO_CALLS = [
     ],
   },
   {
-    after: 2,
+    after: 3,
     lines: [
-      'Zwei Codes. Halbzeit. Molar hier.',
+      'Drei Codes. Halbzeit. Molar hier.',
       'Ähem — die Kühlanlage. Ich habe dort beim Rausgehen eventuell etwas gedrückt.',
       'Könnte relevant sein. Könnte.',
     ],
   },
   {
-    after: 3,
+    after: 5,
     lines: [
-      'Drei Codes! Noch einer.',
+      'Fünf Codes! Nur noch einer.',
       'Die Kühlanlage der explosiven Substanzen — sie läuft nicht mehr.',
       'Bitte. BEEILEN.',
     ],

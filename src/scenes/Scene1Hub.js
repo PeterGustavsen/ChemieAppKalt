@@ -298,7 +298,7 @@ export default function Scene1Hub({
             <>
               <Text style={styles.screenTitle}>SICHERHEITS-</Text>
               <Text style={styles.screenTitle}>TERMINAL v7</Text>
-              <Text style={styles.screenCodes}>CODES {solvedIds.length}/4</Text>
+              <Text style={styles.screenCodes}>CODES {solvedIds.length}/{ROOMS.length}</Text>
               {timeLeft !== null ? (
                 <Text style={[styles.screenTimer, { color: timerColor }]}>{fmtTime(timeLeft)}</Text>
               ) : (

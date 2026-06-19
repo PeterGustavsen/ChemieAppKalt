@@ -34,7 +34,7 @@ export default function Terminal({ rooms, solvedIds, onSubmit, onClose }) {
           <Pressable onPress={onClose} hitSlop={12}><Text style={styles.close}>✕</Text></Pressable>
         </View>
 
-        <Text style={styles.sub}>// CODES {solvedCount}/4 //</Text>
+        <Text style={styles.sub}>// CODES {solvedCount}/{rooms.length} //</Text>
         <View style={styles.slots}>
           {rooms.map((r) => {
             const done = solvedIds.includes(r.id);
@@ -93,8 +93,8 @@ const styles = StyleSheet.create({
   headerTxt: { color: G, fontFamily: 'monospace', fontWeight: 'bold', fontSize: 13, letterSpacing: 1 },
   close: { color: '#f06b6b', fontFamily: 'monospace', fontSize: 16 },
   sub: { color: '#2f8f3a', fontFamily: 'monospace', fontSize: 10, marginTop: 8, letterSpacing: 2 },
-  slots: { flexDirection: 'row', gap: 6, marginTop: 6 },
-  slot: { flex: 1, borderWidth: 1, borderColor: '#1c4f24', padding: 4, alignItems: 'center' },
+  slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6, justifyContent: 'center' },
+  slot: { width: '31%', borderWidth: 1, borderColor: '#1c4f24', padding: 4, alignItems: 'center' },
   slotDone: { borderColor: G, backgroundColor: 'rgba(111,232,122,0.08)' },
   slotCode: { color: '#1c4f24', fontFamily: 'monospace', fontSize: 14, fontWeight: 'bold' },
   slotCodeDone: { color: G },

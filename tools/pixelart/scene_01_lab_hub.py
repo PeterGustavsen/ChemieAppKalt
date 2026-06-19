@@ -24,10 +24,13 @@ FLOOR_Y = 250
 # Deckungsgleich mit der App (src/scenes/scene1.config)
 HOTSPOTS = {
     "terminal": {"x": 246, "y": 120, "w": 150, "h": 150},
-    "door1":    {"x": 440, "y": 60,  "w": 88, "h": 104},   # Titration
-    "door2":    {"x": 540, "y": 60,  "w": 88, "h": 104},   # Stoechiometrie
-    "door3":    {"x": 440, "y": 176, "w": 88, "h": 104},   # PSE
-    "door4":    {"x": 540, "y": 176, "w": 88, "h": 104},   # Organik
+    # 3x2 Tueren rechts (deckungsgleich mit ROOMS in src/config/game.js)
+    "door1":    {"x": 404, "y": 60,  "w": 72, "h": 104},   # Saeure-Base / Puffer
+    "door2":    {"x": 482, "y": 60,  "w": 72, "h": 104},   # Redox
+    "door3":    {"x": 560, "y": 60,  "w": 72, "h": 104},   # Elektrochemie
+    "door4":    {"x": 404, "y": 176, "w": 72, "h": 104},   # Organik
+    "door5":    {"x": 482, "y": 176, "w": 72, "h": 104},   # Elektrolyse
+    "door6":    {"x": 560, "y": 176, "w": 72, "h": 104},   # Gleichgewicht
 }
 
 
@@ -127,8 +130,9 @@ def draw_terminal(img, d):
     H.rect(d, x + w // 2 - 8, y + h - 2, 16, 8, STEEL[0])
 
 
-THEMES = [  # (icon, accent) fuer die 4 Tueren
-    ("drop", PINK), ("balance", BRASS), ("atom", PURPLE), ("flask", ACID),
+THEMES = [  # (icon, accent) fuer die 6 Tueren
+    ("drop", PINK), ("atom", BRASS), ("battery", BASE),
+    ("flask", ACID), ("bolt", ORANGE), ("balance", PURPLE),
 ]
 
 
@@ -150,6 +154,17 @@ def draw_icon(img, d, kind, cx, cy, accent):
                    (cx - 8, cy + 8)], fill=GLASS[1])
         H.rect(d, cx - 6, cy + 2, 12, 6, accent[-1])
         H.rect(d, cx - 3, cy - 11, 6, 3, GLASS[2])
+    elif kind == "battery":
+        H.rect(d, cx - 9, cy - 6, 18, 13, STEEL[1])      # Gehaeuse
+        H.outline(d, cx - 9, cy - 6, 18, 13, INK)
+        H.rect(d, cx + 9, cy - 2, 3, 5, STEEL[2])        # Pluspol-Kappe
+        H.rect(d, cx - 6, cy - 1, 4, 2, accent[-1])      # +
+        H.rect(d, cx - 5, cy - 2, 2, 4, accent[-1])
+        H.rect(d, cx + 2, cy - 1, 4, 2, accent[-1])      # -
+    elif kind == "bolt":
+        d.polygon([(cx + 2, cy - 10), (cx - 6, cy + 1), (cx - 1, cy + 1),
+                   (cx - 3, cy + 10), (cx + 6, cy - 2), (cx + 1, cy - 2)],
+                  fill=accent[-1])
 
 
 def draw_door(img, d, key, theme):
@@ -182,7 +197,8 @@ def build():
     draw_poster(img, d)
     draw_shelf(img, d)
     draw_terminal(img, d)
-    for key, theme in zip(["door1", "door2", "door3", "door4"], THEMES):
+    for key, theme in zip(
+        ["door1", "door2", "door3", "door4", "door5", "door6"], THEMES):
         draw_door(img, d, key, theme)
     H.save_png(img, os.path.join(OUT, "scene_01_lab_hub.png"))
     H.save_preview(img, os.path.join(OUT, "scene_01_lab_hub_preview.png"), 2)

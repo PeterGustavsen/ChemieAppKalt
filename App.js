@@ -4,16 +4,21 @@ import { StatusBar } from 'expo-status-bar';
 
 import SceneStart from './src/scenes/SceneStart';
 import Scene1Hub from './src/scenes/Scene1Hub';
-import Scene2Titration from './src/scenes/Scene2Titration';
+import Scene2Buffer from './src/scenes/Scene2Buffer';
 import Scene3Redox from './src/scenes/Scene3Redox';
-import Scene4Periodic from './src/scenes/Scene4Periodic';
-import Scene5Organik from './src/scenes/Scene5Organik';
+import Scene4Galvanic from './src/scenes/Scene4Galvanic';
+import Scene5Ester from './src/scenes/Scene5Ester';
+import Scene6Electrolysis from './src/scenes/Scene6Electrolysis';
+import Scene7Equilibrium from './src/scenes/Scene7Equilibrium';
 import SceneWin from './src/scenes/SceneWin';
 import SceneFail from './src/scenes/SceneFail';
 import RadioCall from './src/ui/RadioCall';
 import { ROOMS, TIMER_SECONDS, RADIO_CALLS } from './src/config/game';
 
-const ROOM_COMPONENTS = { 2: Scene2Titration, 3: Scene3Redox, 4: Scene4Periodic, 5: Scene5Organik };
+const ROOM_COMPONENTS = {
+  2: Scene2Buffer, 3: Scene3Redox, 4: Scene4Galvanic,
+  5: Scene5Ester, 6: Scene6Electrolysis, 7: Scene7Equilibrium,
+};
 
 export default function App() {
   const [screen, setScreen] = useState('start');

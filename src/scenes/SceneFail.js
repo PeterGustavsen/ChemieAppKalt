@@ -73,7 +73,7 @@ export default function SceneFail({ solvedIds, onRestart }) {
 
         {solvedIds.length === 0
           ? <Text style={styles.verdict}>Kein einziger Code — das Protokoll war gnadenlos.</Text>
-          : <Text style={styles.verdict}>{solvedIds.length} von 4 Kammern geloest. Naechstes Mal schneller!</Text>
+          : <Text style={styles.verdict}>{solvedIds.length} von {ROOMS.length} Kammern geloest. Naechstes Mal schneller!</Text>
         }
 
         <Pressable
