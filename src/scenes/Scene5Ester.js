@@ -1,13 +1,15 @@
 /*
- * SZENE 5 — Veresterung, IN-WORLD. Auf dem Apparate-Tisch stehen zwei Pixel-
- * Bechergläser (Säure + Alkohol), die per ◀ ▶ gewählt werden. Das Gemisch
- * "reagiert" im gemalten Rundkolben über dem Brenner; die Flamme wird heller,
- * je näher man am Ziel ist. Die Ester-Formel steht im Wand-Monitor.
- *   Säure + Alkohol mit zusammen 4 C -> Ester C₄H₈O₂ -> Code 482.
+ * SZENE 5 — BROMONIUM-MECHANISMUS ordnen (in-world).
+ * NOTE: Legacy-Dateiname Scene5Ester.js; Inhalt ist jetzt der Bromonium-Mechanismus.
+ *
+ * Mechanik: die 3 Mechanismus-Platten in chronologischer Reihenfolge antippen
+ * (Alken+Br₂ -> Bromonium-Brücke -> Br⁻-Rückseitenangriff/Dibromid). Falsch ->
+ * FX.error + Reset. Jede Platte trägt eine Ziffer; die Reihenfolge baut den Code.
+ * Liest PUZZLES[5].plates (Fallback lokal).
  */
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Group, Path, Circle, Rect } from '@shopify/react-native-skia';
+import { Group, Circle, Path } from '@shopify/react-native-skia';
 
 import SceneShell from './SceneShell';
 import { useSpriteFrame } from '../engine/useSprite';
@@ -15,93 +17,127 @@ import { poly } from '../engine/skiaUtil';
 import { PUZZLES } from '../config/game';
 import { FX } from '../fx/feedback';
 
-const P = PUZZLES[5];
-const ACIDS = [
-  { name: 'Methansäure', c: 1, col: '#cfe0e8' },
-  { name: 'Essigsäure', c: 2, col: '#e0d29a' },
-  { name: 'Propansäure', c: 3, col: '#e0b48a' },
+const P = PUZZLES[5] || {};
+const PLATE_RECTS = [
+  { x: 56, y: 132, w: 120, h: 104 },
+  { x: 192, y: 132, w: 120, h: 104 },
+  { x: 328, y: 132, w: 120, h: 104 },
 ];
-const ALCOHOLS = [
-  { name: 'Methanol', c: 1, col: '#bcd8e8' },
-  { name: 'Ethanol', c: 2, col: '#a8d8c0' },
-  { name: 'Propanol', c: 3, col: '#c0c0e8' },
+// Fallback: gemischte Reihenfolge; order = chronologisch (0..2)
+const PLATES = P.plates || [
+  { order: 2, digit: '2', step: 'dibromide' },
+  { order: 0, digit: '9', step: 'alkene' },
+  { order: 1, digit: '6', step: 'bromonium' },
 ];
-
-const ACID_B = { cx: 150, top: 150, bot: 214, ht: 26, hb: 20 };
-const ALC_B = { cx: 300, top: 150, bot: 214, ht: 26, hb: 20 };
-const FLASK = { x: 516, y: 142, r: 17 };     // gemalter Rundkolben
-const BX = 516, BY = 196;                     // Brenner
-const MON = { x: 470, y: 60, w: 140, h: 54 }; // Wand-Monitor
-
-const glass = (b) => poly([[b.cx - b.ht, b.top], [b.cx + b.ht, b.top], [b.cx + b.hb, b.bot], [b.cx - b.hb, b.bot]]);
-const liquid = (b) => {
-  const sy = b.top + 16;
-  const w = b.ht - (b.ht - b.hb) * (sy - b.top) / (b.bot - b.top);
-  return poly([[b.cx - w, sy], [b.cx + w, sy], [b.cx + b.hb, b.bot], [b.cx - b.hb, b.bot]]);
-};
+const READOUT = { x: 470, y: 60, w: 140, h: 56 };
+const C_COL = '#cfe8ff', BR_COL = '#e0863a', BOND = '#aeb8c8';
 
 export default function Scene5Ester({ room, onBack, onReveal, initiallySolved, emergencyLight, danger }) {
-  const [acidIdx, setAcidIdx] = useState(1);
-  const [alcoholIdx, setAlcoholIdx] = useState(1);
-  const acid = ACIDS[acidIdx], alc = ALCOHOLS[alcoholIdx];
-  const n = acid.c + alc.c;
-  const solved = (n === 4) || initiallySolved;
-  const ester = `C${n}H${2 * n}O₂`;
-
-  const flick = useSpriteFrame(4, 9);
-  const closeness = 1 - Math.abs(n - 4) / 3;     // 0..1, 1 am Ziel
+  const [seq, setSeq] = useState(initiallySolved ? [0, 1, 2] : []);
+  const [wrong, setWrong] = useState(false);
+  const solved = seq.length === 3;
+  const pulse = useSpriteFrame(40, 16);
 
   useEffect(() => { if (solved) { FX.success(); onReveal && onReveal(room.id); } }, [solved]);
 
-  const cycle = (idx, set, len, dir) => { FX.click(); set((idx + dir + len) % len); };
+  const tap = (i) => {
+    const need = seq.length;
+    if (PLATES[i].order === need) { FX.click(); setWrong(false); setSeq((s) => [...s, PLATES[i].order]); }
+    else { FX.error(); setWrong(true); setSeq([]); setTimeout(() => setWrong(false), 500); }
+  };
 
-  // Brennerflamme: höher/heller je näher am Ziel, grünlich wenn gelöst
-  const fh = (14 + flick * 3) * (0.55 + 0.6 * closeness);
-  const flameOuter = poly([[BX - 7, BY], [BX + 7, BY], [BX, BY - fh]]);
-  const flameInner = poly([[BX - 3, BY], [BX + 3, BY], [BX, BY - fh * 0.55]]);
-  const prodCol = solved ? '#8fe0a0' : closeness > 0.6 ? '#d8c87a' : '#9bb0c0';
+  // chronologisch sortierte Ziffern in Klick-Reihenfolge
+  const byOrder = [...PLATES].sort((a, b) => a.order - b.order);
+  const built = seq.map((o) => byOrder[o].digit).join('');
+
+  // Mini-Mechanismus je Platte (Skia)
+  const mech = (rect, step) => {
+    const cx = rect.x + rect.w / 2, cy = rect.y + rect.h / 2 - 8;
+    const C = (x, y) => <Circle cx={x} cy={y} r={5} color={C_COL} />;
+    if (step === 'alkene') {
+      return (
+        <Group>
+          <Path path={poly([[cx - 14, cy - 28], [cx - 4, cy - 28]])} color={BR_COL} style="stroke" strokeWidth={2} />
+          <Circle cx={cx - 14} cy={cy - 28} r={5} color={BR_COL} /><Circle cx={cx - 4} cy={cy - 28} r={5} color={BR_COL} />
+          <Path path={poly([[cx - 6, cy - 22], [cx - 2, cy - 8]])} color={BR_COL} style="stroke" strokeWidth={1} />
+          {C(cx - 14, cy + 4)}{C(cx + 14, cy + 4)}
+          <Path path={poly([[cx - 9, cy + 1], [cx + 9, cy + 1]])} color={BOND} style="stroke" strokeWidth={1.5} />
+          <Path path={poly([[cx - 9, cy + 7], [cx + 9, cy + 7]])} color={BOND} style="stroke" strokeWidth={1.5} />
+        </Group>
+      );
+    }
+    if (step === 'bromonium') {
+      return (
+        <Group>
+          <Circle cx={cx} cy={cy - 18} r={6} color={BR_COL} />
+          <Path path={poly([[cx, cy - 12], [cx - 14, cy + 4]])} color={BR_COL} style="stroke" strokeWidth={1.5} />
+          <Path path={poly([[cx, cy - 12], [cx + 14, cy + 4]])} color={BR_COL} style="stroke" strokeWidth={1.5} />
+          {C(cx - 14, cy + 4)}{C(cx + 14, cy + 4)}
+          <Path path={poly([[cx - 9, cy + 4], [cx + 9, cy + 4]])} color={BOND} style="stroke" strokeWidth={1.5} />
+          <Circle cx={cx} cy={cy + 28} r={5} color={BR_COL} opacity={0.9} />
+          <Path path={poly([[cx - 3, cy + 28], [cx + 3, cy + 28]])} color="#fff" style="stroke" strokeWidth={1} />
+        </Group>
+      );
+    }
+    // dibromide (anti)
+    return (
+      <Group>
+        {C(cx - 14, cy + 4)}{C(cx + 14, cy + 4)}
+        <Path path={poly([[cx - 9, cy + 4], [cx + 9, cy + 4]])} color={BOND} style="stroke" strokeWidth={1.5} />
+        <Path path={poly([[cx - 14, cy - 1], [cx - 22, cy - 16]])} color={BR_COL} style="stroke" strokeWidth={1.5} />
+        <Circle cx={cx - 22} cy={cy - 16} r={5} color={BR_COL} />
+        <Path path={poly([[cx + 14, cy + 9], [cx + 22, cy + 24]])} color={BR_COL} style="stroke" strokeWidth={1.5} />
+        <Circle cx={cx + 22} cy={cy + 24} r={5} color={BR_COL} />
+      </Group>
+    );
+  };
 
   const renderScene = () => (
     <Group>
-      {/* Reagenz-Bechergläser */}
-      {[[ACID_B, acid], [ALC_B, alc]].map(([b, r], i) => (
-        <Group key={i}>
-          <Path path={liquid(b)} color={r.col} opacity={0.85} />
-          <Path path={glass(b)} color="#cfe8ff" style="stroke" strokeWidth={2} opacity={0.55} />
-        </Group>
-      ))}
-
-      {/* Produkt im Rundkolben + Glühen */}
-      <Circle cx={FLASK.x} cy={FLASK.y} r={FLASK.r - 3} color={prodCol} opacity={0.5 + 0.4 * closeness} />
-      {(solved || closeness > 0.5) && (
-        <Circle cx={FLASK.x} cy={FLASK.y} r={FLASK.r + 4} color={solved ? '#6fe87a' : '#e0c060'}
-          style="stroke" strokeWidth={2} opacity={0.25 + 0.4 * closeness} />
-      )}
-
-      {/* Bunsenflamme */}
-      <Path path={flameOuter} color={solved ? '#7fe89a' : '#f0913a'} opacity={0.95} />
-      <Path path={flameInner} color={solved ? '#d8ffe0' : '#5b9bf0'} opacity={0.9} />
+      {PLATES.map((p, i) => {
+        const picked = seq.includes(p.order);
+        return <Group key={i} opacity={picked ? 1 : 0.92}>{mech(PLATE_RECTS[i], p.step)}</Group>;
+      })}
     </Group>
   );
 
   const renderOverlay = (L, { busy }) => {
     if (busy) return null;
-    const mon = L.toScreen(MON);
+    const ro = L.toScreen(READOUT);
     const u = L.scale;
+    const nextExpected = seq.length;
     return (
       <>
-        {/* Wand-Monitor: Ester-Formel */}
-        <View pointerEvents="none" style={[styles.mon, mon]}>
-          <Text style={[styles.monLbl, { fontSize: 8 * u }]}>REAKTOR · PRODUKT</Text>
-          <Text style={[styles.monVal, { fontSize: 24 * u, color: solved ? '#6fe87a' : '#8fd8b0' }]}>{ester}</Text>
-          <Text style={[styles.monGoal, { fontSize: 8 * u }]}>ZIEL C₄H₈O₂</Text>
+        {/* Code-Readout */}
+        <View pointerEvents="none" style={[styles.ro, ro]}>
+          <Text style={[styles.roLbl, { fontSize: 8 * u }]}>CODE</Text>
+          <Text style={[styles.roVal, { fontSize: 26 * u, color: solved ? '#6fe87a' : '#9a7ad8' }]}>{built.padEnd(3, '·')}</Text>
+          {wrong && <Text style={[styles.roWrong, { fontSize: 8 * u }]}>falsche Reihenfolge</Text>}
         </View>
 
-        {/* Reagenz-Wähler unter den Bechergläsern */}
-        <Selector L={L} cx={ACID_B.cx} label="SÄURE" name={acid.name} sub={`${acid.c} C`} accent={room.accent}
-          onPrev={() => cycle(acidIdx, setAcidIdx, ACIDS.length, -1)} onNext={() => cycle(acidIdx, setAcidIdx, ACIDS.length, +1)} />
-        <Selector L={L} cx={ALC_B.cx} label="ALKOHOL" name={alc.name} sub={`${alc.c} C`} accent={room.accent}
-          onPrev={() => cycle(alcoholIdx, setAlcoholIdx, ALCOHOLS.length, -1)} onNext={() => cycle(alcoholIdx, setAlcoholIdx, ALCOHOLS.length, +1)} />
+        {/* Platten-Inhalte: Ziffer + Reihenfolge-Badge + Tap */}
+        {PLATES.map((p, i) => {
+          const r = PLATE_RECTS[i];
+          const s = L.toScreen(r);
+          const dg = L.toScreen({ x: r.x + 6, y: r.y + r.h - 18, w: 22, h: 12 });
+          const picked = seq.includes(p.order);
+          const pos = seq.indexOf(p.order);
+          const isNext = !picked && p.order === nextExpected;
+          return (
+            <React.Fragment key={i}>
+              <View pointerEvents="none" style={[styles.digit, dg]}>
+                <Text style={[styles.digitTxt, { fontSize: 10 * u }]}>{p.digit}</Text>
+              </View>
+              <Pressable style={[styles.plate, s, picked && styles.platePicked, isNext && (pulse % 40 < 20) && styles.plateNext]} onPress={() => tap(i)}>
+                {picked && <Text style={[styles.badge, { fontSize: 10 * u }]}>{pos + 1}.</Text>}
+              </Pressable>
+            </React.Fragment>
+          );
+        })}
+
+        <View style={styles.band} pointerEvents="none">
+          <Text style={[styles.bandTxt, { fontSize: 9 * u }]}>Mechanismus in chronologischer Reihenfolge antippen</Text>
+        </View>
       </>
     );
   };
@@ -109,11 +145,11 @@ export default function Scene5Ester({ room, onBack, onReveal, initiallySolved, e
   return (
     <SceneShell
       room={room}
-      bgSource={require('../../assets/scenes/scene_05_apparatus.png')}
+      bgSource={require('../../assets/scenes/scene_05_bromonium.png')}
       introLines={P.intro}
       hintLines={P.hint}
       solved={solved}
-      solvedLines={['Säure + Alkohol mit zusammen 4 C-Atomen', 'Ester C₄H₈O₂  →  4·100 + 8·10 + 2 = 482']}
+      solvedLines={['Alken + Br₂ → Bromonium-Ion → anti-Dibromid.', 'Reihenfolge der Ziffern ergibt den Code.']}
       onBack={onBack}
       emergencyLight={emergencyLight}
       danger={danger}
@@ -123,34 +159,17 @@ export default function Scene5Ester({ room, onBack, onReveal, initiallySolved, e
   );
 }
 
-function Selector({ L, cx, label, name, sub, accent, onPrev, onNext }) {
-  const u = L.scale;
-  const rect = L.toScreen({ x: cx - 56, y: 220, w: 112, h: 32 });
-  return (
-    <View style={[styles.sel, rect]}>
-      <Text style={[styles.selLbl, { fontSize: 7 * u, color: accent }]}>{label}</Text>
-      <View style={styles.selRow}>
-        <Pressable hitSlop={8} onPress={onPrev}><Text style={[styles.selArrow, { fontSize: 13 * u }]}>◀</Text></Pressable>
-        <View style={styles.selMid}>
-          <Text style={[styles.selName, { fontSize: 9.5 * u }]} numberOfLines={1}>{name}</Text>
-          <Text style={[styles.selSub, { fontSize: 7.5 * u }]}>({sub})</Text>
-        </View>
-        <Pressable hitSlop={8} onPress={onNext}><Text style={[styles.selArrow, { fontSize: 13 * u }]}>▶</Text></Pressable>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  mon: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  monLbl: { color: '#2f8f6a', fontFamily: 'monospace', letterSpacing: 1 },
-  monVal: { fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: 1 },
-  monGoal: { color: '#2f8f6a', fontFamily: 'monospace', letterSpacing: 1 },
-  sel: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  selLbl: { fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: 2 },
-  selRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  selArrow: { color: '#cfe8ff', fontFamily: 'monospace', marginHorizontal: 4 },
-  selMid: { alignItems: 'center', minWidth: 70 },
-  selName: { color: '#eafcff', fontFamily: 'monospace', fontWeight: 'bold' },
-  selSub: { color: '#aab6c6', fontFamily: 'monospace' },
+  ro: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  roLbl: { color: '#7a5aa8', fontFamily: 'monospace', letterSpacing: 2 },
+  roVal: { fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: 4 },
+  roWrong: { color: '#f0907a', fontFamily: 'monospace', marginTop: 1 },
+  plate: { position: 'absolute', borderWidth: 2, borderColor: 'transparent', alignItems: 'flex-end', justifyContent: 'flex-start' },
+  platePicked: { borderColor: '#9660c8' },
+  plateNext: { borderColor: '#c8a0ee' },
+  badge: { color: '#c8a0ee', fontFamily: 'monospace', fontWeight: 'bold', margin: 3 },
+  digit: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  digitTxt: { color: '#e0b44c', fontFamily: 'monospace', fontWeight: 'bold' },
+  band: { position: 'absolute', left: 0, right: 0, bottom: 14, alignItems: 'center' },
+  bandTxt: { color: '#aab6c6', fontFamily: 'monospace' },
 });
