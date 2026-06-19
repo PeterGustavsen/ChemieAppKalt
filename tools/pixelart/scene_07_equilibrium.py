@@ -114,7 +114,7 @@ def build():
     draw_flask(img, d)
     draw_gauge(img, d)
     SC.display(img, d, DISPLAY["x"], DISPLAY["y"], DISPLAY["w"], DISPLAY["h"])
-    SC.note(img, d, 408, 232)
+    # Intro note is drawn in-world by SceneShell (Konstantin's I4) — no painted one.
     H.save_png(img, os.path.join(OUT, "scene_07_equilibrium.png"))
     H.save_preview(img, os.path.join(OUT, "scene_07_equilibrium_preview.png"), 2)
     print("scene_07_equilibrium.png OK")

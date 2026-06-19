@@ -11,7 +11,7 @@ import { useStageLayout } from '../engine/layout';
 import { useSpriteFrame } from '../engine/useSprite';
 import PixelDialog from '../ui/PixelDialog';
 import Terminal from '../ui/Terminal';
-import CrtOverlay from '../fx/CrtOverlay';
+import CRTOverlay from '../ui/CRTOverlay';
 import { FX } from '../fx/feedback';
 import {
   ROOMS, TERMINAL, TERMINAL_SCREEN,
@@ -156,12 +156,14 @@ export default function Scene1Hub({
   };
 
   const onDoor = (room) => {
-    FX.click();
     if (solvedIds.includes(room.id)) {
+      FX.clunk();   // opening an already-solved chamber
       setDialog({ speaker: 'Prof. Dr. Molar', lines: ['Diese Kammer ist bereits gelöst. Gut gemacht!'] });
     } else if (target && room.id === target.id) {
+      FX.click();
       onEnterRoom(room);
     } else {
+      FX.click();
       const need = target ? target.id : '?';
       setDialog({
         speaker: 'Prof. Dr. Molar',
@@ -329,8 +331,8 @@ export default function Scene1Hub({
         </View>
       )}
 
-      {/* CRT scanline + vignette filter over the scene */}
-      <CrtOverlay />
+      {/* CRT scanline + vignette filter over the scene (shared with SceneShell) */}
+      <CRTOverlay L={L} intensity={emergencyLight ? 1 : 0.85} />
 
       {!busy && (
         <>

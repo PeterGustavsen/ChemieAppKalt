@@ -112,7 +112,7 @@ def build():
     a_x, c_x = draw_tank(img, d)
     draw_wires(img, d, a_x, c_x)
     SC.display(img, d, DISPLAY["x"], DISPLAY["y"], DISPLAY["w"], DISPLAY["h"])
-    SC.note(img, d, 408, 232)
+    # Intro note is drawn in-world by SceneShell (Konstantin's I4) — no painted one.
     H.save_png(img, os.path.join(OUT, "scene_06_electrolysis.png"))
     H.save_preview(img, os.path.join(OUT, "scene_06_electrolysis_preview.png"), 2)
     print("scene_06_electrolysis.png OK")
