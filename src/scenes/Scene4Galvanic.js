@@ -1,13 +1,16 @@
 /*
- * SZENE 4 — Galvanische Zelle, IN-WORLD. Auf der Tafel ist eine echte Zelle
- * gezeichnet: zwei Halbzellen (Becher + Elektrode), Salzbrücke und Voltmeter.
- * Pro Elektrode wird das Metall mit ◀ ▶ gewählt; die aktive Elektrode glüht
- * pulsierend. Voltmeter zeigt die EMK; bei 1,10 V fließt Strom (Elektronen
- * wandern, alles leuchtet grün).  Zn-Anode / Cu-Kathode -> 1,10 V.
+ * SZENE 4 — ROSTEN VON EISEN / Wassertropfen-Korrosion (in-world).
+ * NOTE: Legacy-Dateiname Scene4Galvanic.js; Inhalt ist jetzt der Rost-Mechanismus.
+ *
+ * Mechanik: für Anode & Kathode je Spezies + Elektronenzahl per Dial einstellen;
+ * stimmt eine Halbreaktion, wird ihr Slot grün. Skia: Wassertropfen-Dom,
+ * e⁻-Pfeile Anode→Kathode, Fe²⁺/OH⁻, Rost am Tropfenrand bei Lösung.
+ * Anode: Fe→Fe²⁺ (2 e⁻) · Kathode: O₂+2H₂O→4OH⁻ (4 e⁻).
+ * Liest PUZZLES[4].anode/.cathode (Fallback lokal).
  */
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Group, Path, Rect, Circle } from '@shopify/react-native-skia';
+import { Group, Path, Circle } from '@shopify/react-native-skia';
 
 import SceneShell from './SceneShell';
 import { useSpriteFrame } from '../engine/useSprite';
@@ -15,115 +18,101 @@ import { poly } from '../engine/skiaUtil';
 import { PUZZLES } from '../config/game';
 import { FX } from '../fx/feedback';
 
-const P = PUZZLES[4];
-const METALS = [
-  { sym: 'Zn', e: -0.76, col: '#9aa6b0' },
-  { sym: 'Fe', e: -0.44, col: '#7a8088' },
-  { sym: 'Cu', e: +0.34, col: '#d08a4a' },
-  { sym: 'Ag', e: +0.80, col: '#d8dde2' },
-];
-const fmtV = (v) => `${v < 0 ? '−' : ''}${Math.abs(v).toFixed(2).replace('.', ',')} V`;
+const P = PUZZLES[4] || {};
+const A_OPTS = (P.anode && P.anode.options) || ['Fe → Fe²⁺', 'Fe²⁺ → Fe³⁺', '2 H⁺ → H₂'];
+const C_OPTS = (P.cathode && P.cathode.options) || ['O₂+2H₂O → 4OH⁻', '2 H⁺ → H₂', 'Fe³⁺ → Fe²⁺'];
+const A_E = (P.anode && P.anode.e) || 2;
+const C_E = (P.cathode && P.cathode.e) || 4;
 
-// Zell-Geometrie (Szenen-Koordinaten) auf der Tafel
-const VM = { x: 284, y: 58, w: 72, h: 32 };
-const A = { cx: 196, top: 122, bot: 184, ht: 30, hb: 24 };   // Anode (links)
-const C = { cx: 444, top: 122, bot: 184, ht: 30, hb: 24 };   // Kathode (rechts)
-const EL_TOP = 104;                                          // Elektroden-Oberkante
-const NOTE = { x: 150, y: 150, w: 150, h: 40 };
-
-const beakerGlass = (b) => poly([[b.cx - b.ht, b.top], [b.cx + b.ht, b.top], [b.cx + b.hb, b.bot], [b.cx - b.hb, b.bot]]);
-const beakerLiquid = (b) => {
-  const sy = b.top + 14;
-  const lx = b.cx - (b.ht - (b.ht - b.hb) * (sy - b.top) / (b.bot - b.top));
-  return poly([[lx, sy], [2 * b.cx - lx, sy], [b.cx + b.hb, b.bot], [b.cx - b.hb, b.bot]]);
-};
+const DROP = { cx: 320, base: 250, rx: 150, ry: 120 };
+const A_MARK = { x: 216, y: 250 };
+const C_MARK = { x: 345, y: 250 };
 
 export default function Scene4Galvanic({ room, onBack, onReveal, initiallySolved, emergencyLight, danger }) {
-  const [anodeIdx, setAnodeIdx] = useState(0);
-  const [cathodeIdx, setCathodeIdx] = useState(3);
-  const emk = METALS[cathodeIdx].e - METALS[anodeIdx].e;
-  const solved = Math.round(emk * 100) === 110 || initiallySolved;
+  const [aSpec, setASpec] = useState(initiallySolved ? 0 : 1);
+  const [aE, setAE] = useState(initiallySolved ? A_E : 1);
+  const [cSpec, setCSpec] = useState(initiallySolved ? 0 : 1);
+  const [cE, setCE] = useState(initiallySolved ? C_E : 1);
 
-  const ph = useSpriteFrame(40, 20);
-  const pulse = (Math.sin((ph / 40) * Math.PI * 2) + 1) / 2;     // 0..1
-  const flow = useSpriteFrame(24, 16);                            // Elektronen-Phase
+  const aOK = aSpec === 0 && aE === A_E;
+  const cOK = cSpec === 0 && cE === C_E;
+  const solved = aOK && cOK;
+
+  const flow = useSpriteFrame(24, 14);
 
   useEffect(() => { if (solved) { FX.success(); onReveal && onReveal(room.id); } }, [solved]);
 
-  const cycle = (idx, set, dir) => { FX.click(); set((idx + dir + METALS.length) % METALS.length); };
+  const cycle = (set, v, len) => { FX.click(); set((v + 1) % len); };
+  const bumpE = (set, v) => { FX.click(); set((v % 6) + 1); };
 
-  const aM = METALS[anodeIdx], cM = METALS[cathodeIdx];
-  const live = solved ? '#6fe87a' : '#cfe8ff';
+  const dome = () => {
+    const pts = [];
+    const N = 24;
+    for (let i = 0; i <= N; i++) {
+      const th = (Math.PI * i) / N;
+      pts.push([DROP.cx + DROP.rx * Math.cos(th), DROP.base - DROP.ry * Math.sin(th)]);
+    }
+    return poly(pts);
+  };
 
-  // Drahtweg Voltmeter -> Anode -> (Salzbrücke) -> Kathode -> Voltmeter
-  const wireL = poly([[VM.x + 8, VM.y + VM.h], [VM.x + 8, EL_TOP - 6], [A.cx, EL_TOP - 6], [A.cx, EL_TOP]]);
-  const wireR = poly([[VM.x + VM.w - 8, VM.y + VM.h], [VM.x + VM.w - 8, EL_TOP - 6], [C.cx, EL_TOP - 6], [C.cx, EL_TOP]]);
-  const bridge = poly([[A.cx + 30, A.top + 4], [A.cx + 30, A.top - 8], [C.cx - 30, A.top - 8], [C.cx - 30, C.top + 4]]);
-
-  // Elektronen entlang des linken Drahts (nur wenn gelöst)
-  const eDots = solved ? [0, 1, 2, 3].map((k) => {
-    const t = ((flow / 24) + k / 4) % 1;
-    return { x: A.cx + (VM.x + 8 - A.cx) * 0, y: EL_TOP - 6, px: A.cx + (VM.x + 8 - A.cx) * t };
-  }) : [];
-
-  const renderScene = () => (
-    <Group>
-      {/* Drähte + Salzbrücke */}
-      <Path path={wireL} color={live} style="stroke" strokeWidth={2} />
-      <Path path={wireR} color={live} style="stroke" strokeWidth={2} />
-      <Path path={bridge} color="#b9a25a" style="stroke" strokeWidth={5} opacity={0.85} />
-      <Path path={bridge} color="#e7d79a" style="stroke" strokeWidth={2} />
-
-      {/* Elektronenfluss auf der Oberleitung */}
-      {eDots.map((d, i) => <Circle key={i} cx={d.px} cy={d.y} r={1.8} color="#aef5bd" />)}
-
-      {/* Voltmeter-Ring */}
-      <Rect x={VM.x} y={VM.y} width={VM.w} height={VM.h} color="#10141d" />
-      <Rect x={VM.x} y={VM.y} width={VM.w} height={VM.h} color={solved ? '#6fe87a' : '#46506a'} style="stroke" strokeWidth={2} />
-
-      {[A, C].map((b, i) => {
-        const m = i === 0 ? aM : cM;
-        return (
-          <Group key={i}>
-            {/* Glas + Flüssigkeit */}
-            <Path path={beakerLiquid(b)} color={i === 0 ? '#6c84a8' : '#6ca8a0'} opacity={0.6} />
-            <Path path={beakerGlass(b)} color="#cfe8ff" style="stroke" strokeWidth={2} opacity={0.6} />
-            {/* pulsierender Schein der aktiven Elektrode */}
-            <Rect x={b.cx - 6} y={EL_TOP} width={12} height={b.bot - EL_TOP - 4}
-              color={solved ? '#6fe87a' : m.col} opacity={0.12 + 0.4 * pulse} />
-            {/* Elektrode */}
-            <Rect x={b.cx - 3} y={EL_TOP} width={6} height={b.bot - EL_TOP - 6} color={m.col} />
-          </Group>
-        );
-      })}
-    </Group>
-  );
+  const renderScene = () => {
+    const live = aOK || cOK;
+    // e⁻ entlang der Oberfläche Anode -> Kathode
+    const eDots = live ? [0, 1, 2].map((k) => {
+      const t = ((flow / 24) + k / 3) % 1;
+      return <Circle key={k} cx={A_MARK.x + (C_MARK.x - A_MARK.x) * t} cy={251} r={1.8} color="#aef5bd" />;
+    }) : null;
+    return (
+      <Group>
+        {/* Wassertropfen-Dom */}
+        <Path path={dome()} color="#5b9bf0" opacity={0.26} />
+        <Path path={dome()} color="#bfe0ff" style="stroke" strokeWidth={1.5} opacity={0.5} />
+        {/* Fe²⁺ steigt an der Anode */}
+        {aOK && [0, 1].map((k) => {
+          const t = ((flow / 24) + k / 2) % 1;
+          return <Circle key={'fe' + k} cx={A_MARK.x + (k - 0.5) * 8} cy={248 - t * 70} r={2.4} color="#e0a060" opacity={0.85 * (1 - t)} />;
+        })}
+        {/* OH⁻ an der Kathode */}
+        {cOK && [0, 1].map((k) => (
+          <Circle key={'oh' + k} cx={C_MARK.x + (k - 0.5) * 10} cy={236 - k * 8} r={2.2} color="#7fd0ff" opacity={0.8} />
+        ))}
+        {eDots}
+        {/* Rost am Tropfenrand bei Lösung */}
+        {solved && [-1, 1].map((s) => (
+          <Circle key={s} cx={DROP.cx + s * (DROP.rx - 8)} cy={DROP.base - 6} r={10} color="#9a5a2a" opacity={0.6} />
+        ))}
+      </Group>
+    );
+  };
 
   const renderOverlay = (L, { busy }) => {
     if (busy) return null;
-    const vm = L.toScreen(VM);
-    const note = L.toScreen(NOTE);
+    const ro = L.toScreen({ x: 206, y: 62, w: 228, h: 48 });
+    const aS = L.toScreen({ x: 176, y: 200, w: 80, h: 46 });
+    const cS = L.toScreen({ x: 300, y: 160, w: 90, h: 46 });
     const u = L.scale;
-    const near = Math.abs(emk - 1.10) < 0.25;
     return (
       <>
-        {/* Voltmeter-Anzeige */}
-        <View pointerEvents="none" style={[styles.vm, vm]}>
-          <Text style={[styles.vmVal, { fontSize: 17 * u, color: solved ? '#6fe87a' : near ? '#e0e87a' : '#cfe8ff' }]}>{fmtV(emk)}</Text>
-          <Text style={[styles.vmLbl, { fontSize: 6.5 * u }]}>EMK</Text>
+        {/* Gesamtgleichung-Readout */}
+        <View pointerEvents="none" style={[styles.ro, ro]}>
+          <Text style={[styles.roHdr, { fontSize: 8 * u }]}>GESAMTREAKTION</Text>
+          <Text style={[styles.roTxt, { fontSize: 10 * u, color: solved ? '#6fe87a' : '#5a7a6a' }]} numberOfLines={2}>
+            {solved ? '2 Fe + O₂ + 2 H₂O → 2 Fe(OH)₂' : `${aOK ? 1 : 0}+${cOK ? 1 : 0}/2 Halbgleichungen`}
+          </Text>
         </View>
 
-        {/* Elektroden-Wähler */}
-        <Selector L={L} cx={A.cx} label="ANODE (−)" metal={aM} accent={room.accent}
-          onPrev={() => cycle(anodeIdx, setAnodeIdx, -1)} onNext={() => cycle(anodeIdx, setAnodeIdx, +1)} />
-        <Selector L={L} cx={C.cx} label="KATHODE (+)" metal={cM} accent={room.accent}
-          onPrev={() => cycle(cathodeIdx, setCathodeIdx, -1)} onNext={() => cycle(cathodeIdx, setCathodeIdx, +1)} />
+        {/* Slot-Anzeigen (grün wenn korrekt) */}
+        <SlotView rect={aS} u={u} hdr="ANODE (Ox.)" spec={A_OPTS[aSpec]} e={aE} ok={aOK} />
+        <SlotView rect={cS} u={u} hdr="KATHODE (Red.)" spec={C_OPTS[cSpec]} e={cE} ok={cOK} />
 
-        {/* Angepinnte Ziel-Notiz */}
-        <View pointerEvents="none" style={[styles.note, note]}>
-          <View style={styles.notePin} />
-          <Text style={[styles.noteTxt, { fontSize: 11 * u }]}>ZIEL: EMK = 1,10 V</Text>
-          <Text style={[styles.noteSub, { fontSize: 8 * u }]}>EMK = E°(K) − E°(A)</Text>
+        {/* Steuerleiste: Dials */}
+        <View style={styles.band}>
+          <DialGroup u={u} accent={room.accent} title="ANODE"
+            onSpec={() => cycle(setASpec, aSpec, A_OPTS.length)} spec={A_OPTS[aSpec]}
+            onE={() => bumpE(setAE, aE)} e={aE} />
+          <DialGroup u={u} accent={room.accent} title="KATHODE"
+            onSpec={() => cycle(setCSpec, cSpec, C_OPTS.length)} spec={C_OPTS[cSpec]}
+            onE={() => bumpE(setCE, cE)} e={cE} />
         </View>
       </>
     );
@@ -132,11 +121,11 @@ export default function Scene4Galvanic({ room, onBack, onReveal, initiallySolved
   return (
     <SceneShell
       room={room}
-      bgSource={require('../../assets/scenes/scene_04_periodic.png')}
+      bgSource={require('../../assets/scenes/scene_04_rosten.png')}
       introLines={P.intro}
       hintLines={P.hint}
       solved={solved}
-      solvedLines={['Anode Zn (−0,76 V), Kathode Cu (+0,34 V)', 'EMK = 1,10 V = 1100 mV']}
+      solvedLines={['Anode: Fe → Fe²⁺ + 2 e⁻', 'Kathode: O₂ + 2 H₂O + 4 e⁻ → 4 OH⁻']}
       onBack={onBack}
       emergencyLight={emergencyLight}
       danger={danger}
@@ -146,42 +135,39 @@ export default function Scene4Galvanic({ room, onBack, onReveal, initiallySolved
   );
 }
 
-function Selector({ L, cx, label, metal, accent, onPrev, onNext }) {
-  const u = L.scale;
-  const rect = L.toScreen({ x: cx - 40, y: 188, w: 80, h: 30 });
+function SlotView({ rect, u, hdr, spec, e, ok }) {
   return (
-    <View style={[styles.sel, rect]}>
-      <Text style={[styles.selLbl, { fontSize: 7 * u, color: accent }]} numberOfLines={1}>{label}</Text>
-      <View style={styles.selRow}>
-        <Pressable hitSlop={8} onPress={onPrev}><Text style={[styles.selArrow, { fontSize: 13 * u }]}>◀</Text></Pressable>
-        <View style={styles.selMid}>
-          <Text style={[styles.selSym, { fontSize: 13 * u, color: metal.col }]}>{metal.sym}</Text>
-          <Text style={[styles.selE, { fontSize: 7.5 * u }]}>{fmtV(metal.e)}</Text>
-        </View>
-        <Pressable hitSlop={8} onPress={onNext}><Text style={[styles.selArrow, { fontSize: 13 * u }]}>▶</Text></Pressable>
-      </View>
+    <View pointerEvents="none" style={[styles.slot, rect, ok && styles.slotOk]}>
+      <Text style={[styles.slotHdr, { fontSize: 7 * u, color: ok ? '#6fe87a' : '#8a96a6' }]}>{hdr} {ok ? '✓' : ''}</Text>
+      <Text style={[styles.slotSpec, { fontSize: 8.5 * u }]} numberOfLines={1}>{spec}</Text>
+      <Text style={[styles.slotE, { fontSize: 7.5 * u }]}>{e} e⁻</Text>
+    </View>
+  );
+}
+
+function DialGroup({ u, accent, title, onSpec, spec, onE, e }) {
+  return (
+    <View style={styles.dg}>
+      <Text style={[styles.dgTitle, { fontSize: 8 * u, color: accent }]}>{title}</Text>
+      <Pressable onPress={onSpec} style={styles.dgBtn}><Text style={[styles.dgSpec, { fontSize: 9 * u }]} numberOfLines={1}>{spec}</Text></Pressable>
+      <Pressable onPress={onE} style={styles.dgBtn}><Text style={[styles.dgE, { fontSize: 9 * u }]}>e⁻: {e} ▸</Text></Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  vm: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  vmVal: { fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: 1 },
-  vmLbl: { color: '#5a7a9a', fontFamily: 'monospace', letterSpacing: 2 },
-  sel: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  selLbl: { fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: 1 },
-  selRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  selArrow: { color: '#cfe8ff', fontFamily: 'monospace', marginHorizontal: 4 },
-  selMid: { alignItems: 'center', minWidth: 36 },
-  selSym: { fontFamily: 'monospace', fontWeight: 'bold' },
-  selE: { color: '#aab6c6', fontFamily: 'monospace' },
-  note: {
-    position: 'absolute', backgroundColor: '#ece3c8', borderWidth: 1, borderColor: '#c8bd9a',
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
-    transform: [{ rotate: '-2deg' }],
-    shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 3, shadowOffset: { width: 1, height: 2 },
-  },
-  notePin: { position: 'absolute', top: -4, alignSelf: 'center', width: 7, height: 7, borderRadius: 4, backgroundColor: '#d4302a' },
-  noteTxt: { color: '#2a2410', fontFamily: 'monospace', fontWeight: 'bold' },
-  noteSub: { color: '#6a5e34', fontFamily: 'monospace', marginTop: 1 },
+  ro: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  roHdr: { color: '#2f8f6a', fontFamily: 'monospace', letterSpacing: 2 },
+  roTxt: { fontFamily: 'monospace', fontWeight: 'bold', marginTop: 3, textAlign: 'center' },
+  slot: { position: 'absolute', justifyContent: 'center', paddingHorizontal: 5, borderWidth: 1, borderColor: 'transparent' },
+  slotOk: { borderColor: '#6fe87a' },
+  slotHdr: { fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: 1 },
+  slotSpec: { color: '#eafcff', fontFamily: 'monospace', fontWeight: 'bold', marginTop: 1 },
+  slotE: { color: '#aab6c6', fontFamily: 'monospace', marginTop: 1 },
+  band: { position: 'absolute', left: 0, right: 0, bottom: 10, flexDirection: 'row', justifyContent: 'center', gap: 18 },
+  dg: { alignItems: 'center' },
+  dgTitle: { fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: 1, marginBottom: 2 },
+  dgBtn: { backgroundColor: 'rgba(13,15,23,0.82)', borderWidth: 1, borderColor: '#33405a', borderRadius: 3, paddingHorizontal: 8, paddingVertical: 3, marginTop: 2, minWidth: 96, alignItems: 'center' },
+  dgSpec: { color: '#eafcff', fontFamily: 'monospace', fontWeight: 'bold' },
+  dgE: { color: '#e0b44c', fontFamily: 'monospace', fontWeight: 'bold' },
 });
