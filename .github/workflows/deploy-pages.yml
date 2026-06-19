@@ -1,0 +1,55 @@
+name: Build & Deploy to GitHub Pages
+
+# Builds the Expo web bundle on every push to main and publishes it to the
+# gh-pages branch (which GitHub Pages serves). Replaces the manual export.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Export web bundle
+        run: npx expo export --platform web
+
+      - name: Restore CanvasKit + write Skia-bootstrap index.html
+        run: |
+          # expo export wipes dist/, so restore the tracked CanvasKit files and
+          # .nojekyll, then write index.html (boots Skia before the JS bundle)
+          # from the template with the freshly-hashed bundle name.
+          git checkout HEAD -- dist/canvaskit.js dist/canvaskit.wasm
+          touch dist/.nojekyll
+          BUNDLE=$(basename "$(ls dist/_expo/static/js/web/index-*.js | head -1)")
+          sed "s|__BUNDLE__|$BUNDLE|" tools/web/index.template.html > dist/index.html
+          echo "Published bundle: $BUNDLE"
+
+      - name: Publish dist/ to gh-pages
+        run: |
+          cd dist
+          git init -q
+          git checkout -q -b gh-pages
+          git add -A
+          git -c user.email=actions@github.com -c user.name=github-actions \
+            commit -qm "Deploy ${GITHUB_SHA::7}"
+          git push -f \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" \
+            gh-pages
