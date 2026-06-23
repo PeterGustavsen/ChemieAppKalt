@@ -5,22 +5,26 @@
     "version": "1.0.0",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
       "backgroundColor": "#0d0f17"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "de.konsti.chemieescaperoom",
+      "buildNumber": "1"
     },
     "android": {
+      "package": "de.konsti.chemieescaperoom",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a2332"
       }
     },
     "web": {
       "bundler": "metro"
-    },
-    "experiments": {
-      "baseUrl": "/ChemieAppKalt"
     }
   }
 }
