@@ -12,6 +12,8 @@ import { useSpriteFrame } from '../engine/useSprite';
 import PixelDialog from '../ui/PixelDialog';
 import Terminal from '../ui/Terminal';
 import CRTOverlay from '../ui/CRTOverlay';
+import HubBackdrop from '../ui/HubBackdrop';
+import NavBar from '../ui/NavBar';
 import { FX } from '../fx/feedback';
 import {
   ROOMS, TERMINAL, TERMINAL_SCREEN,
@@ -187,6 +189,7 @@ export default function Scene1Hub({
 
   return (
     <View style={styles.root}>
+      <HubBackdrop />
       <Canvas style={{ flex: 1 }}>
         <Group clip={{ x: L.offsetX, y: L.offsetY, width: L.stageW, height: L.stageH }}
           transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
@@ -336,16 +339,16 @@ export default function Scene1Hub({
 
       {!busy && (
         <>
+          {/* Konsole bleibt anklickbar; Navigation läuft über die untere Leiste */}
           <Hotspot layout={L} rectObj={TERMINAL} color="#6fe87a"
             onIn={() => setPressed({ rect: TERMINAL, color: '#6fe87a' })}
             onOut={() => setPressed(null)}
             onPress={() => { FX.click(); setTerminalOpen(true); }} />
-          {ROOMS.map((r) => (
-            <Hotspot key={r.key} layout={L} rectObj={r.rect} color={r.accent}
-              onIn={() => setPressed({ rect: r.rect, color: r.accent })}
-              onOut={() => setPressed(null)}
-              onPress={() => onDoor(r)} />
-          ))}
+          <NavBar
+            rooms={ROOMS} solvedIds={solvedIds} target={target}
+            onPick={onDoor}
+            onTerminal={() => { FX.click(); setTerminalOpen(true); }}
+          />
         </>
       )}
 
