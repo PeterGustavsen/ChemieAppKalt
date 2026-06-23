@@ -8,7 +8,6 @@ import {
 import AnimatedSprite from '../engine/AnimatedSprite';
 import { usePixelImage } from '../engine/usePixelImage';
 import { useStageLayout } from '../engine/layout';
-import { useSpriteFrame } from '../engine/useSprite';
 import PixelDialog from '../ui/PixelDialog';
 import Terminal from '../ui/Terminal';
 import CRTOverlay from '../ui/CRTOverlay';
@@ -52,7 +51,6 @@ export default function Scene1Hub({
   );
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [pressed, setPressed] = useState(null);
-  const blink = useSpriteFrame(2, 1.6);
 
   // ── Animated scene state ────────────────────────────────────────────────────
   const [molarX, setMolarX] = useState(MOLAR.x);
@@ -150,12 +148,6 @@ export default function Scene1Hub({
 
   const target = ROOMS.find((r) => !solvedIds.includes(r.id)) || null;
   const busy = !!dialog || terminalOpen || molarLeaving;
-
-  const ledColor = (room) => {
-    if (solvedIds.includes(room.id)) return '#6fe87a';
-    if (target && room.id === target.id) return '#f0b23a';
-    return '#ad3535';
-  };
 
   const onDoor = (room) => {
     if (solvedIds.includes(room.id)) {
@@ -287,17 +279,7 @@ export default function Scene1Hub({
             />
           )}
 
-          {ROOMS.map((r) => (
-            <Group key={`led-${r.id}`}>
-              <Rect x={r.rect.x + 10} y={r.rect.y + r.rect.h - 14} width={8} height={8} color={ledColor(r)} />
-              <Rect x={r.rect.x + 10} y={r.rect.y + r.rect.h - 14} width={3} height={3} color="#ffffff" />
-            </Group>
-          ))}
-
-          {!busy && target && blink === 0 && (
-            <Rect x={target.rect.x - 1} y={target.rect.y - 1} width={target.rect.w + 2} height={target.rect.h + 2}
-              color="#f0b23a" style="stroke" strokeWidth={2} />
-          )}
+          {/* Konsole-Hover-Glow (Navigation/Status liegen in der NavBar) */}
           {!busy && pressed && (
             <PressGlow rectObj={pressed.rect} color={pressed.color} />
           )}
