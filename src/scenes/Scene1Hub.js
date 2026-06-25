@@ -183,7 +183,7 @@ export default function Scene1Hub({
     <View style={styles.root}>
       <HubBackdrop />
       <Canvas style={{ flex: 1 }}>
-        <Group clip={{ x: L.offsetX, y: L.offsetY, width: L.stageW, height: L.stageH }}
+        <Group clip={{ x: 0, y: 0, width: SCENE_W, height: SCENE_H }}
           transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
           {bg && (
             <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />
