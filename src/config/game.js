@@ -5,8 +5,8 @@ export const TIMER_SECONDS = 30 * 60;
 
 // 6 stations (3×2) + console. Konstantin paints the 6 cabinets + console to
 // match THESE numbers (handoff #1).
-export const TERMINAL        = { x: 246, y: 250, w: 148, h: 90 };
-export const TERMINAL_SCREEN = { x: 258, y: 262, w: 124, h: 70 };
+export const TERMINAL        = { x: 222, y: 246, w: 196, h: 104 };
+export const TERMINAL_SCREEN = { x: 242, y: 250, w: 156, h: 84 };
 
 export const ROOMS = [
   {

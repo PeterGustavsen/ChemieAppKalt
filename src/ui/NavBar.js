@@ -42,16 +42,6 @@ export default function NavBar({ rooms, solvedIds, target, onPick, onTerminal })
           );
         })}
 
-        <Pressable
-          onPress={onTerminal}
-          style={({ pressed }) => [styles.cell, styles.term, pressed && styles.pressed]}
-        >
-          <View style={styles.cellTop}>
-            <Text style={[styles.num, { color: '#6fe87a' }]}>⌨</Text>
-            <View style={[styles.led, { backgroundColor: '#6fe87a' }]} />
-          </View>
-          <Text style={[styles.lbl, { color: '#6fe87a' }]} numberOfLines={1}>TERMINAL</Text>
-        </Pressable>
       </View>
     </View>
   );

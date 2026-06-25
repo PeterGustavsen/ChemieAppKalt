@@ -19,7 +19,7 @@ FLOOR_Y = 250
 
 # Nur noch die Konsole ist ein Hotspot (Navigation laeuft ueber die NavBar).
 HOTSPOTS = {
-    "console": {"x": 258, "y": 262, "w": 124, "h": 70},
+    "console": {"x": 242, "y": 250, "w": 156, "h": 84},
 }
 
 # Frei zu haltende Bereiche (App malt darauf): Fenster + Molar-Standplatz.
