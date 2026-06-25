@@ -7,13 +7,15 @@ import {
 
 import { usePixelImage } from '../engine/usePixelImage';
 import { useStageLayout } from '../engine/layout';
+import SceneBackdrop from '../ui/SceneBackdrop';
 import { SCENE_W, SCENE_H } from '../config/game';
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
+const BG = require('../../assets/scenes/scene_01_lab_hub.png');
 
 export default function SceneStart({ onStart }) {
   const L = useStageLayout();
-  const bg = usePixelImage(require('../../assets/scenes/scene_01_lab_hub.png'));
+  const bg = usePixelImage(BG);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const btnAnim = useRef(new Animated.Value(0)).current;
@@ -28,6 +30,8 @@ export default function SceneStart({ onStart }) {
 
   return (
     <View style={styles.root}>
+      {/* Füllt die Ränder → keine schwarzen Letterbox-Balken. */}
+      <SceneBackdrop source={BG} darken={0.55} />
       {/* Blurred lab background */}
       <Canvas style={{ flex: 1 }}>
         <Group transform={[

@@ -9,9 +9,11 @@ import AnimatedSprite from '../engine/AnimatedSprite';
 import { usePixelImage } from '../engine/usePixelImage';
 import { useStageLayout } from '../engine/layout';
 import PixelDialog from '../ui/PixelDialog';
+import SceneBackdrop from '../ui/SceneBackdrop';
 import { ROOMS, WIN_DIALOG, SCENE_W, SCENE_H } from '../config/game';
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
+const BG = require('../../assets/scenes/scene_01_lab_hub.png');
 const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0, frames: 15 };
 
 const WIN = { x: 205, y: 14, w: 230, h: 94 };
@@ -23,7 +25,7 @@ const fmtTime = (s) =>
 
 export default function SceneWin({ elapsed, onRestart }) {
   const L = useStageLayout();
-  const bg = usePixelImage(require('../../assets/scenes/scene_01_lab_hub.png'));
+  const bg = usePixelImage(BG);
   const molar = usePixelImage(require('../../assets/sprites/molar_idle.png'));
   const molarSpeak = usePixelImage(require('../../assets/sprites/molar_speak.png'));
 
@@ -57,6 +59,8 @@ export default function SceneWin({ elapsed, onRestart }) {
 
   return (
     <View style={styles.root}>
+      {/* Füllt die Ränder → keine schwarzen Letterbox-Balken. */}
+      <SceneBackdrop source={BG} darken={0.6} />
       <Canvas style={{ flex: 1 }}>
         <Group clip={{ x: L.offsetX, y: L.offsetY, width: L.stageW, height: L.stageH }}
           transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>

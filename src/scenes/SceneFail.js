@@ -7,14 +7,16 @@ import {
 
 import { usePixelImage } from '../engine/usePixelImage';
 import { useStageLayout } from '../engine/layout';
+import SceneBackdrop from '../ui/SceneBackdrop';
 import { ROOMS, SCENE_W, SCENE_H } from '../config/game';
 
 const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
 const LAMP = { x: SCENE_W / 2, y: 8 };
+const BG = require('../../assets/scenes/scene_01_lab_hub.png');
 
 export default function SceneFail({ solvedIds, onRestart }) {
   const L = useStageLayout();
-  const bg = usePixelImage(require('../../assets/scenes/scene_01_lab_hub.png'));
+  const bg = usePixelImage(BG);
   const [glow, setGlow] = useState(0.4);
 
   // Fast danger pulse — system shutdown imminent
@@ -30,6 +32,8 @@ export default function SceneFail({ solvedIds, onRestart }) {
 
   return (
     <View style={styles.root}>
+      {/* Füllt die Ränder → keine schwarzen Letterbox-Balken. */}
+      <SceneBackdrop source={BG} darken={0.7} />
       <Canvas style={{ flex: 1 }}>
         <Group transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
           {bg && <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />}

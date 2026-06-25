@@ -11,6 +11,7 @@ import { useSpriteFrame } from '../engine/useSprite';
 import PixelDialog from '../ui/PixelDialog';
 import CRTOverlay from '../ui/CRTOverlay';
 import ClipboardNote from '../ui/ClipboardNote';
+import SceneBackdrop from '../ui/SceneBackdrop';
 import { SCENE_W, SCENE_H } from '../config/game';
 import { FX } from '../fx/feedback';
 
@@ -56,6 +57,8 @@ export default function SceneShell({
 
   return (
     <View style={styles.root}>
+      {/* Verlängert den Raum in die Letterbox-Ränder → keine schwarzen Balken. */}
+      <SceneBackdrop source={bgSource} darken={0.55} />
       <Canvas style={{ flex: 1 }}>
         <Group transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
           {bg && <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />}
