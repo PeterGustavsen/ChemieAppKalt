@@ -166,10 +166,18 @@ export const PUZZLES = {
       'Beide hohen Prioritäten auf gleicher Seite → Z, auf gegenüberliegender → E.',
       'Hier: Z, E, Z  →  Code 246.',
     ],
+    // c1/c2 Top/Bot = Substituenten je Doppelbindungs-C; hi = höhere CIP-Priorität.
+    // Geometrie passt zur answer: beide hi gleiche Seite → Z, gegenüber → E.
     molecules: [
-      { name: '1-Chlorprop-1-en',           answer: 'Z', digit: '2' },
-      { name: '(Ethyl)(Methyl)C=C(Cl)(Br)', answer: 'E', digit: '4' },
-      { name: '(F)(Cl)C=C(Br)(I)',          answer: 'Z', digit: '6' },
+      { name: '1-Chlorprop-1-en',           answer: 'Z', digit: '2',
+        c1Top: { l: 'Cl', hi: true }, c1Bot: { l: 'H' },
+        c2Top: { l: 'CH₃', hi: true }, c2Bot: { l: 'H' } },          // Cl & CH₃ oben → Z
+      { name: '(Ethyl)(Methyl)C=C(Cl)(Br)', answer: 'E', digit: '4',
+        c1Top: { l: 'C₂H₅', hi: true }, c1Bot: { l: 'CH₃' },
+        c2Top: { l: 'Cl' }, c2Bot: { l: 'Br', hi: true } },          // C₂H₅ oben, Br unten → E
+      { name: '(F)(Cl)C=C(Br)(I)',          answer: 'Z', digit: '6',
+        c1Top: { l: 'Cl', hi: true }, c1Bot: { l: 'F' },
+        c2Top: { l: 'I', hi: true }, c2Bot: { l: 'Br' } },           // Cl & I oben → Z
     ],
     code: '246',
   },
