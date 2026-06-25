@@ -1,6 +1,6 @@
 /*
  * useGuessLock — escalating lockout to deter brute-forcing a puzzle answer.
- * 1st wrong guess is free; then 2 s, 4 s, 8 s, 16 s, capped at 20 s. A correct
+ * Every wrong guess locks: 2 s, then 4 s, 8 s, 16 s, capped at 20 s. A correct
  * move calls reset() so genuine progress is never penalised.
  *
  *   const lock = useGuessLock();
@@ -32,8 +32,9 @@ export function useGuessLock(cap = 20) {
 
   const registerWrong = () => {
     wrongRef.current += 1;
-    const secs = wrongRef.current < 2 ? 0 : Math.min(2 ** (wrongRef.current - 1), cap);
-    if (secs > 0) setLockUntil(Date.now() + secs * 1000);
+    // Every wrong guess locks — 1st = 2 s, then 4/8/16 s, capped. No free first try.
+    const secs = Math.min(2 ** wrongRef.current, cap);
+    setLockUntil(Date.now() + secs * 1000);
   };
   const reset = () => { wrongRef.current = 0; setLockUntil(0); setNow(Date.now()); };
 
