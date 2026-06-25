@@ -12,6 +12,7 @@ import { Group, Circle, Path } from '@shopify/react-native-skia';
 
 import SceneShell from './SceneShell';
 import { poly } from '../engine/skiaUtil';
+import { useGuessLock } from '../engine/useGuessLock';
 import { PUZZLES } from '../config/game';
 import { FX } from '../fx/feedback';
 
@@ -35,6 +36,7 @@ export default function Scene7Isomerie({ room, onBack, onReveal, initiallySolved
   const [idx, setIdx] = useState(initiallySolved ? 3 : 0);
   const [digits, setDigits] = useState(initiallySolved ? MOLS.map((m) => m.digit) : []);
   const [wrong, setWrong] = useState(false);
+  const lock = useGuessLock();
   const solved = idx >= MOLS.length;
   const mol = MOLS[Math.min(idx, MOLS.length - 1)];
 
@@ -42,11 +44,13 @@ export default function Scene7Isomerie({ room, onBack, onReveal, initiallySolved
 
   const pick = (ans) => {
     if (solved) return;
+    if (lock.locked) { FX.error(); return; }
     if (ans === mol.answer) {
       FX.click();
+      lock.reset();
       setDigits((d) => [...d, mol.digit]);
       setIdx((i) => i + 1);
-    } else { FX.error(); setWrong(true); setTimeout(() => setWrong(false), 500); }
+    } else { FX.error(); setWrong(true); lock.registerWrong(); setTimeout(() => setWrong(false), 500); }
   };
 
   const bond = (a, b, col, sw = 2) => <Path path={poly([[a.x, a.y], [b.x, b.y]])} color={col} style="stroke" strokeWidth={sw} />;
@@ -108,7 +112,7 @@ export default function Scene7Isomerie({ room, onBack, onReveal, initiallySolved
 
         {/* Steuerleiste: E / Z */}
         <View style={styles.band}>
-          {!solved && <Text style={[styles.bandHint, { fontSize: 9 * u }]}>{wrong ? 'falsch — CIP-Prioritäten prüfen' : 'Konfiguration bestimmen'}</Text>}
+          {!solved && <Text style={[styles.bandHint, { fontSize: 9 * u }]}>{lock.locked ? `GESPERRT · ${lock.remainS}s` : wrong ? 'falsch — CIP-Prioritäten prüfen' : 'Konfiguration bestimmen'}</Text>}
           <View style={styles.btns}>
             {['E', 'Z'].map((a) => (
               <Pressable key={a} onPress={() => pick(a)} style={[styles.btn, { borderColor: room.accent }]}>

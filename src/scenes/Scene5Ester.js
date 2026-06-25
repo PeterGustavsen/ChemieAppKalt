@@ -13,6 +13,7 @@ import { Group, Circle, Path } from '@shopify/react-native-skia';
 
 import SceneShell from './SceneShell';
 import { useSpriteFrame } from '../engine/useSprite';
+import { useGuessLock } from '../engine/useGuessLock';
 import { poly } from '../engine/skiaUtil';
 import { PUZZLES } from '../config/game';
 import { FX } from '../fx/feedback';
@@ -35,15 +36,17 @@ const C_COL = '#cfe8ff', BR_COL = '#e0863a', BOND = '#aeb8c8';
 export default function Scene5Ester({ room, onBack, onReveal, initiallySolved, emergencyLight, danger }) {
   const [seq, setSeq] = useState(initiallySolved ? [0, 1, 2] : []);
   const [wrong, setWrong] = useState(false);
+  const lock = useGuessLock();
   const solved = seq.length === 3;
   const pulse = useSpriteFrame(40, 16);
 
   useEffect(() => { if (solved) { FX.success(); onReveal && onReveal(room.id); } }, [solved]);
 
   const tap = (i) => {
+    if (lock.locked) { FX.error(); return; }
     const need = seq.length;
-    if (PLATES[i].order === need) { FX.click(); setWrong(false); setSeq((s) => [...s, PLATES[i].order]); }
-    else { FX.error(); setWrong(true); setSeq([]); setTimeout(() => setWrong(false), 500); }
+    if (PLATES[i].order === need) { FX.click(); setWrong(false); lock.reset(); setSeq((s) => [...s, PLATES[i].order]); }
+    else { FX.error(); setWrong(true); lock.registerWrong(); setSeq([]); setTimeout(() => setWrong(false), 500); }
   };
 
   // chronologisch sortierte Ziffern in Klick-Reihenfolge
@@ -112,7 +115,9 @@ export default function Scene5Ester({ room, onBack, onReveal, initiallySolved, e
         <View pointerEvents="none" style={[styles.ro, ro]}>
           <Text style={[styles.roLbl, { fontSize: 8 * u }]}>CODE</Text>
           <Text style={[styles.roVal, { fontSize: 26 * u, color: solved ? '#6fe87a' : '#9a7ad8' }]}>{built.padEnd(3, '·')}</Text>
-          {wrong && <Text style={[styles.roWrong, { fontSize: 8 * u }]}>falsche Reihenfolge</Text>}
+          {lock.locked
+            ? <Text style={[styles.roWrong, { fontSize: 8 * u }]}>GESPERRT · {lock.remainS}s</Text>
+            : wrong && <Text style={[styles.roWrong, { fontSize: 8 * u }]}>falsche Reihenfolge</Text>}
         </View>
 
         {/* Platten-Inhalte: Ziffer + Reihenfolge-Badge + Tap */}

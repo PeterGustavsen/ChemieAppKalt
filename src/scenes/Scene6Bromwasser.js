@@ -11,6 +11,7 @@ import { Group, Rect, Circle } from '@shopify/react-native-skia';
 
 import SceneShell from './SceneShell';
 import { useSpriteFrame } from '../engine/useSprite';
+import { useGuessLock } from '../engine/useGuessLock';
 import { PUZZLES } from '../config/game';
 import { FX } from '../fx/feedback';
 
@@ -34,6 +35,7 @@ export default function Scene6Bromwasser({ room, onBack, onReveal, initiallySolv
   const [shaken, setShaken] = useState(initiallySolved);
   const [seq, setSeq] = useState(initiallySolved ? [0, 1, 2] : []);
   const [wrong, setWrong] = useState(false);
+  const lock = useGuessLock();
   const [shake, setShake] = useState(0);
   const shakeRef = useRef(null);
   const shimmer = useSpriteFrame(20, 10);
@@ -52,8 +54,9 @@ export default function Scene6Bromwasser({ room, onBack, onReveal, initiallySolv
       return;
     }
     // Phase 2: nach steigender Sättigung ordnen
-    if (TUBES[i].sat === seq.length) { FX.click(); setWrong(false); setSeq((s) => [...s, TUBES[i].sat]); }
-    else { FX.error(); setWrong(true); setSeq([]); setTimeout(() => setWrong(false), 500); }
+    if (lock.locked) { FX.error(); return; }
+    if (TUBES[i].sat === seq.length) { FX.click(); setWrong(false); lock.reset(); setSeq((s) => [...s, TUBES[i].sat]); }
+    else { FX.error(); setWrong(true); lock.registerWrong(); setSeq([]); setTimeout(() => setWrong(false), 500); }
   };
 
   const doShake = () => {
@@ -108,7 +111,9 @@ export default function Scene6Bromwasser({ room, onBack, onReveal, initiallySolv
         <View pointerEvents="none" style={[styles.ro, ro]}>
           <Text style={[styles.roHdr, { fontSize: 8 * u }]}>BROMWASSER-TEST</Text>
           <Text style={[styles.roCode, { fontSize: 20 * u, color: solved ? '#6fe87a' : '#7fd89a' }]}>{built.padEnd(3, '·')}</Text>
-          {wrong && <Text style={[styles.roWrong, { fontSize: 8 * u }]}>falsche Reihenfolge</Text>}
+          {lock.locked
+            ? <Text style={[styles.roWrong, { fontSize: 8 * u }]}>GESPERRT · {lock.remainS}s</Text>
+            : wrong && <Text style={[styles.roWrong, { fontSize: 8 * u }]}>falsche Reihenfolge</Text>}
         </View>
 
         {/* Glas-Labels + Taps */}
