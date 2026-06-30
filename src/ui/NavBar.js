@@ -1,16 +1,14 @@
 /*
- * NavBar — untere Navigationsleiste des Hubs. Ersetzt das Anklicken der
- * Schrank-Boxen: man reist über diese Leiste zu den 6 Stationen und zum
- * Terminal. Reine RN-UI (auflösungsunabhängig, volle Breite), passt sich an
- * jede iPad-/iPhone-Größe an.
+ * NavBar — minimalistische untere Navigationsleiste des Hubs. Reise zu den 6
+ * Stationen + Terminal. Kompakte Icon-Kacheln statt langer Beschriftung.
  *
- * Status je Station:
- *   gelöst  → grün, Häkchen
- *   aktiv   → Akzentfarbe der Station (nächste zu lösende)
- *   gesperrt→ gedämpft grau (Antippen zeigt Molars Hinweis via onPick)
+ * Status je Station:  gelöst → grün ✓ · aktiv → Akzentfarbe · gesperrt → grau.
+ * Reine RN-UI, auflösungsunabhängig (iPad/iPhone).
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+
+const ICONS = ['⚡', '🛡', '🧪', '⚗', '💧', '🔗']; // Galvanik·Anode·Rosten·Addition·Bromwasser·Isomerie
 
 export default function NavBar({ rooms, solvedIds, target, onPick, onTerminal }) {
   return (
@@ -28,29 +26,24 @@ export default function NavBar({ rooms, solvedIds, target, onPick, onTerminal })
                 styles.cell,
                 { borderColor: col },
                 active && styles.cellActive,
+                !solved && !active && styles.cellLocked,
                 pressed && styles.pressed,
               ]}
             >
-              <View style={styles.cellTop}>
-                <Text style={[styles.num, { color: col }]}>{solved ? '✓' : i + 1}</Text>
-                <View style={[styles.led, { backgroundColor: col }]} />
-              </View>
-              <Text style={[styles.lbl, !solved && !active && styles.lblLocked]} numberOfLines={1}>
-                {r.title}
-              </Text>
+              <Text style={styles.icon}>{ICONS[i]}</Text>
+              <Text style={[styles.badge, { color: col }]}>{solved ? '✓' : i + 1}</Text>
             </Pressable>
           );
         })}
+
+        <View style={styles.sep} />
 
         <Pressable
           onPress={onTerminal}
           style={({ pressed }) => [styles.cell, styles.term, pressed && styles.pressed]}
         >
-          <View style={styles.cellTop}>
-            <Text style={[styles.num, { color: '#6fe87a' }]}>⌨</Text>
-            <View style={[styles.led, { backgroundColor: '#6fe87a' }]} />
-          </View>
-          <Text style={[styles.lbl, { color: '#6fe87a' }]} numberOfLines={1}>TERMINAL</Text>
+          <Text style={styles.icon}>🖥</Text>
+          <Text style={[styles.badge, { color: '#6fe87a' }]}>PC</Text>
         </Pressable>
       </View>
     </View>
@@ -58,30 +51,23 @@ export default function NavBar({ rooms, solvedIds, target, onPick, onTerminal })
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    position: 'absolute', left: 0, right: 0, bottom: 0,
-    alignItems: 'center',
-  },
+  wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center' },
   bar: {
-    flexDirection: 'row', alignItems: 'stretch', gap: 6,
-    paddingHorizontal: 10, paddingVertical: 8,
-    backgroundColor: 'rgba(8,12,20,0.86)',
-    borderTopWidth: 2, borderColor: '#2d3748',
-    width: '100%', justifyContent: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 7,
+    backgroundColor: 'rgba(8,12,20,0.78)',
+    borderTopWidth: 1, borderColor: '#2d3748',
   },
   cell: {
-    flex: 1, maxWidth: 150, minWidth: 64,
-    borderWidth: 2, borderRadius: 3,
-    backgroundColor: 'rgba(13,15,23,0.9)',
-    paddingHorizontal: 8, paddingVertical: 6,
-    justifyContent: 'center',
+    width: 46, height: 46, borderWidth: 1.5, borderRadius: 6,
+    backgroundColor: 'rgba(13,15,23,0.7)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  cellActive: { backgroundColor: 'rgba(40,30,8,0.92)' },
-  term: { borderColor: '#2f8f3a', maxWidth: 120 },
-  pressed: { opacity: 0.65 },
-  cellTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  num: { fontFamily: 'monospace', fontSize: 15, fontWeight: 'bold' },
-  led: { width: 7, height: 7, borderRadius: 1 },
-  lbl: { color: '#aeb9c9', fontFamily: 'monospace', fontSize: 9, marginTop: 3, letterSpacing: 0.5 },
-  lblLocked: { color: '#56627a' },
+  cellActive: { backgroundColor: 'rgba(255,255,255,0.07)' },
+  cellLocked: { opacity: 0.5 },
+  term: { borderColor: '#2f8f3a' },
+  sep: { width: 1, height: 30, backgroundColor: '#2d3748', marginHorizontal: 2 },
+  pressed: { opacity: 0.6 },
+  icon: { fontSize: 18, lineHeight: 22 },
+  badge: { fontFamily: 'monospace', fontSize: 10, fontWeight: 'bold', marginTop: 1 },
 });

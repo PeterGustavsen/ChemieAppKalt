@@ -17,9 +17,10 @@ OUT = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "scenes")
 W, Hh = H.SCENE_W, H.SCENE_H
 FLOOR_Y = 250
 
-# Nur noch die Konsole ist ein Hotspot (Navigation laeuft ueber die NavBar).
+# Nur noch der PC ist ein Hotspot (Navigation laeuft ueber die NavBar).
+# Grosser zentraler CRT-Monitor (wie frueher), Fenster dahinter.
 HOTSPOTS = {
-    "console": {"x": 258, "y": 262, "w": 124, "h": 70},
+    "terminal": {"x": 246, "y": 120, "w": 150, "h": 150},
 }
 
 # Frei zu haltende Bereiche (App malt darauf): Fenster + Molar-Standplatz.
@@ -145,26 +146,37 @@ def draw_pipes(img, d):
     H.outline(d, 556, 14, 10, 10, INK_SOFT)
 
 
-def draw_console(img, d):
-    hs = HOTSPOTS["console"]
-    sx, sy, sw, sh = hs["x"], hs["y"], hs["w"], hs["h"]
-    dx, dw = sx - 40, sw + 80
-    H.soft_shadow(img, sx + sw // 2, sy + sh + 8, dw // 2, 7, 80)
-    H.rect(d, dx, sy - 10, dw, sh + 26, WOOD[1])
-    H.rect(d, dx, sy - 10, dw, 4, WOOD[2])
-    H.rect(d, dx, sy + sh + 12, dw, 4, WOOD[0])
-    H.rect(d, sx - 4, sy - 4, sw + 8, sh + 8, STEEL[1])
-    H.outline(d, sx - 4, sy - 4, sw + 8, sh + 8, INK)
+def draw_terminal(img, d):
+    """Grosser zentraler CRT-Monitor auf Holztisch (wie vor dem 6er-Umbau).
+    App malt Status/Codes in TERMINAL_SCREEN = {258,132,126,106}."""
+    hs = HOTSPOTS["terminal"]
+    x, y, w, h = hs["x"], hs["y"], hs["w"], hs["h"]
+    # Tisch unter dem Monitor
+    H.rect(d, x - 30, y + h - 6, w + 60, Hh - (y + h - 6) - 20, WOOD[1])
+    H.rect(d, x - 30, y + h - 6, w + 60, 4, WOOD[2])
+    H.rect(d, x - 30, Hh - 22, w + 60, 4, WOOD[0])
+    H.soft_shadow(img, x + w // 2, y + h + 4, w // 2 + 20, 6, 70)
+    # Gehaeuse (Stahl)
+    H.rect(d, x, y, w, h, STEEL[1])
+    H.outline(d, x, y, w, h, INK)
+    H.rect(d, x, y, w, 3, STEEL[2])                       # Lichtkante oben
+    H.dither_rect(img, x + w - 16, y + 4, 14, h - 8, STEEL[1], STEEL[0], 0.6)
+    # Bildschirm-Vertiefung (dunkles Phosphor — App malt Inhalt)
+    sx, sy, sw, sh = x + 12, y + 12, w - 24, h - 44
+    H.rect(d, sx - 2, sy - 2, sw + 4, sh + 4, INK)
     H.rect(d, sx, sy, sw, sh, CRT[0])
-    H.dither_rect(img, sx, sy, sw, sh, CRT[0], CRT[1], 0.16)
+    H.dither_rect(img, sx, sy, sw, sh, CRT[0], CRT[1], 0.18)
     for ly in range(sy, sy + sh, 2):
-        H.hline(d, sx, ly, sw, (2, 14, 8))
-    d.polygon([(sx, sy), (sx + 24, sy), (sx, sy + 20)], fill=(*GLASS_HI, 36))
-    ky = sy + sh + 14
-    H.rect(d, sx + 6, ky, sw - 12, 12, STEEL[0])
-    H.rect(d, sx + 6, ky, sw - 12, 2, STEEL[2])
-    for kx in range(sx + 12, sx + sw - 12, 10):
-        H.rect(d, kx, ky + 3, 7, 5, STEEL[1])
+        H.hline(d, sx, ly, sw, (2, 14, 8))               # Scanlines
+    d.polygon([(sx, sy), (sx + 26, sy), (sx, sy + 22)], fill=(*GLASS_HI, 40))
+    # Tastatur auf dem Tisch
+    ky = y + h + 4
+    H.rect(d, x + 6, ky, w - 12, 14, STEEL[0])
+    H.rect(d, x + 6, ky, w - 12, 2, STEEL[2])
+    for kx in range(x + 12, x + w - 12, 10):
+        H.rect(d, kx, ky + 4, 7, 6, STEEL[1])
+    # Standfuss
+    H.rect(d, x + w // 2 - 8, y + h - 2, 16, 8, STEEL[0])
 
 
 def build():
@@ -176,19 +188,18 @@ def build():
     draw_pipes(img, d)
 
     # LINKS: Periodensystem-Poster + Reagenz-Regal (hinter Molars Standplatz)
-    draw_poster(img, d, 16, 30, 120, 80)
-    draw_shelf(img, d, 12, 168, 176, [ACID, BASE, PINK, ORANGE, PURPLE], "beaker")
+    draw_poster(img, d, 16, 34, 122, 82)
+    draw_shelf(img, d, 14, 182, 168, [ACID, BASE, PINK, ORANGE, PURPLE], "beaker")
 
-    # MITTE (unter dem Fenster): Pinnwand mit Notizen
-    draw_corkboard(img, d, 232, 120, 176, 76)
+    # MITTE: grosser CRT-Monitor; darueber zeichnet die App das Fenster.
 
-    # RECHTS: zwei Regale + Uhr + Feuerloescher
-    draw_shelf(img, d, 446, 70, 150, [PURPLE, ACID, ORANGE, BASE], "bottle")
-    draw_shelf(img, d, 446, 150, 150, [PINK, BASE, ACID, ORANGE], "bottle")
-    draw_clock(img, d, 614, 44, 14)
-    draw_extinguisher(img, d, 606, 150)
+    # RECHTS: zwei Regale + Uhr + Feuerloescher (rechts vom Tisch, x>456)
+    draw_shelf(img, d, 462, 70, 150, [PURPLE, ACID, ORANGE, BASE], "bottle")
+    draw_shelf(img, d, 462, 152, 150, [PINK, BASE, ACID, ORANGE], "bottle")
+    draw_clock(img, d, 614, 40, 14)
+    draw_extinguisher(img, d, 606, 156)
 
-    draw_console(img, d)
+    draw_terminal(img, d)
 
     H.save_png(img, os.path.join(OUT, "scene_01_lab_hub.png"))
     H.save_preview(img, os.path.join(OUT, "scene_01_lab_hub_preview.png"), 2)

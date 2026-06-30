@@ -3,10 +3,10 @@ export const SCENE_H = 360;
 
 export const TIMER_SECONDS = 30 * 60;
 
-// 6 stations (3×2) + console. Konstantin paints the 6 cabinets + console to
-// match THESE numbers (handoff #1).
-export const TERMINAL        = { x: 246, y: 250, w: 148, h: 90 };
-export const TERMINAL_SCREEN = { x: 258, y: 262, w: 124, h: 70 };
+// Navigation läuft über die NavBar; der PC ist wieder der große zentrale
+// CRT-Monitor (wie vor dem 6-Stationen-Umbau), mit dem Fenster dahinter.
+export const TERMINAL        = { x: 246, y: 120, w: 150, h: 150 };
+export const TERMINAL_SCREEN = { x: 258, y: 132, w: 126, h: 106 };
 
 export const ROOMS = [
   {
