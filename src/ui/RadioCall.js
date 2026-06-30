@@ -7,6 +7,7 @@ const SPEAK_FRAMES = 8;        // molar_speak.png: zu + versch. Mundformen
 const AVATAR = 64;
 const ZOOM = 1.4;
 const FW_Z = FRAME_W * ZOOM;   // ein Frame, gezoomt
+const AUTO_MS = 3000;          // Verweildauer pro Zeile, nachdem sie fertig getippt ist
 
 export default function RadioCall({ lines, onDismiss }) {
   const slide = useRef(new Animated.Value(-160)).current;
@@ -63,6 +64,14 @@ export default function RadioCall({ lines, onDismiss }) {
     if (lineIdx < lines.length - 1) setLineIdx((i) => i + 1);
     else dismiss();
   };
+
+  // Auto-Funk: sobald eine Zeile fertig getippt ist, kurz stehen lassen und
+  // dann selbststaendig weiterschalten — auf der letzten Zeile schliesst es sich.
+  useEffect(() => {
+    if (!done) return;
+    const id = setTimeout(advance, AUTO_MS);
+    return () => clearTimeout(id);
+  }, [done, lineIdx]);
 
   return (
     <Animated.View style={[styles.root, { transform: [{ translateY: slide }] }]}>
