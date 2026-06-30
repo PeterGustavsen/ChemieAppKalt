@@ -31,7 +31,7 @@ export default function Terminal({ rooms, solvedIds, onSubmit, onClose }) {
       <View style={styles.crt}>
         <View style={styles.header}>
           <Text style={styles.headerTxt}>SICHERHEITSTERMINAL v7</Text>
-          <Pressable onPress={onClose} hitSlop={12}><Text style={styles.close}>✕</Text></Pressable>
+          <Pressable onPress={onClose} hitSlop={24}><Text style={styles.close}>✕</Text></Pressable>
         </View>
 
         <Text style={styles.sub}>// CODES {solvedCount}/{rooms.length} //</Text>
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTxt: { color: G, fontFamily: 'monospace', fontWeight: 'bold', fontSize: 13, letterSpacing: 1 },
-  close: { color: '#f06b6b', fontFamily: 'monospace', fontSize: 16 },
+  close: { color: '#f06b6b', fontFamily: 'monospace', fontSize: 26, fontWeight: 'bold', paddingHorizontal: 6, paddingVertical: 2 },
   sub: { color: '#2f8f3a', fontFamily: 'monospace', fontSize: 10, marginTop: 8, letterSpacing: 2 },
   slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6, justifyContent: 'center' },
   slot: { width: '31%', borderWidth: 1, borderColor: '#1c4f24', padding: 4, alignItems: 'center' },
