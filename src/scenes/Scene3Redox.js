@@ -16,6 +16,7 @@ import SceneShell from './SceneShell';
 import { useSpriteFrame } from '../engine/useSprite';
 import { PUZZLES } from '../config/game';
 import { FX } from '../fx/feedback';
+import { useGuessLock } from '../engine/useGuessLock';
 
 const P = PUZZLES[3] || {};
 const METALS = P.metals || [
@@ -31,6 +32,7 @@ const NAIL = { x0: 250, x1: 384, y: 199 };
 export default function Scene3Redox({ room, onBack, onReveal, initiallySolved, emergencyLight, danger }) {
   const [metal, setMetal] = useState(initiallySolved ? BEST : null);
   const [added, setAdded] = useState(initiallySolved);
+  const lock = useGuessLock();
   const m = METALS.find((x) => x.sym === metal) || null;
   const solved = added && metal === BEST;
 
@@ -50,10 +52,12 @@ export default function Scene3Redox({ room, onBack, onReveal, initiallySolved, e
 
   const choose = (sym) => { FX.click(); setMetal(sym); setAdded(false); };
   const addSolution = () => {
+    if (lock.locked) { FX.error(); return; }   // während Sperre keine Eingabe
     if (!metal) { FX.error(); return; }
     FX.drip();
     setAdded(true);
-    if (m && !m.protects) setTimeout(() => FX.error(), 300);   // Korrosion = schlecht
+    if (metal === BEST) { lock.reset(); }
+    else { lock.registerWrong(); setTimeout(() => FX.error(), 300); }   // nicht optimal = Fehlversuch → Sperre
   };
 
   const result = !added ? null
@@ -94,8 +98,10 @@ export default function Scene3Redox({ room, onBack, onReveal, initiallySolved, e
         {/* Ergebnis-Plakette */}
         <View pointerEvents="none" style={[styles.label, lab]}>
           <Text style={[styles.labHdr, { fontSize: 8 * u }]}>FERROXYL-TEST</Text>
-          <Text style={[styles.labTxt, { fontSize: 9.5 * u, color: result ? result.col : '#6fe87a' }]} numberOfLines={2}>
-            {result ? result.txt : (metal ? `${metal} um den Nagel gewickelt — Lösung zugeben` : 'Metall wählen')}
+          <Text style={[styles.labTxt, { fontSize: 9.5 * u, color: lock.locked ? '#f0907a' : (result ? result.col : '#6fe87a') }]} numberOfLines={2}>
+            {lock.locked
+              ? `GESPERRT — ${lock.remainS}s warten`
+              : (result ? result.txt : (metal ? `${metal} um den Nagel gewickelt — Lösung zugeben` : 'Metall wählen'))}
           </Text>
         </View>
 
@@ -105,7 +111,7 @@ export default function Scene3Redox({ room, onBack, onReveal, initiallySolved, e
             {METALS.map((x) => (
               <Pressable key={x.sym} onPress={() => choose(x.sym)}
                 style={[styles.chip, { borderColor: metal === x.sym ? room.accent : '#33405a' }, metal === x.sym && styles.chipSel]}>
-                <Text style={[styles.chipSym, { color: x.col }]}>{x.sym}</Text>
+                <Text style={[styles.chipSym, { color: '#eafcff' }]}>{x.sym}</Text>
               </Pressable>
             ))}
             <Pressable onPress={addSolution} style={[styles.addBtn, { borderColor: room.accent }]}>

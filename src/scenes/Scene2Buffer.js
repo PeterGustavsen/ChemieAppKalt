@@ -18,6 +18,7 @@ import { useSpriteFrame } from '../engine/useSprite';
 import { poly } from '../engine/skiaUtil';
 import { PUZZLES } from '../config/game';
 import { FX } from '../fx/feedback';
+import { useGuessLock } from '../engine/useGuessLock';
 
 const P = PUZZLES[2] || {};
 const METALS = P.metals || [
@@ -40,6 +41,7 @@ export default function Scene2Buffer({ room, onBack, onReveal, initiallySolved, 
   const [anode, setAnode] = useState(initiallySolved ? 'Zn' : null);
   const [cathode, setCathode] = useState(initiallySolved ? 'Cu' : null);
   const [pick, setPick] = useState(null);
+  const lock = useGuessLock();
 
   const both = anode && cathode;
   const mv = both ? Math.round((metalOf(cathode).e - metalOf(anode).e) * 1000) : 0;
@@ -48,12 +50,20 @@ export default function Scene2Buffer({ room, onBack, onReveal, initiallySolved, 
   const flow = useSpriteFrame(24, 14);
   const flick = useSpriteFrame(4, 8);
 
-  useEffect(() => { if (solved) { FX.success(); onReveal && onReveal(room.id); } }, [solved]);
+  useEffect(() => { if (solved) { FX.success(); lock.reset(); onReveal && onReveal(room.id); } }, [solved]);
+
+  // Anti-Brute-Force: beide Becher besetzt, aber EMK falsch = Fehlversuch → Sperre.
+  useEffect(() => {
+    if (anode && cathode && !solved) { FX.error(); lock.registerWrong(); }
+  }, [anode, cathode]);
 
   const place = (which) => {
-    if (!pick) { FX.error(); return; }
-    FX.click();
-    if (which === 'A') setAnode(pick); else setCathode(pick);
+    if (lock.locked) { FX.error(); return; }   // während Sperre keine Eingabe
+    const cur = which === 'A' ? anode : cathode;
+    const set = which === 'A' ? setAnode : setCathode;
+    if (pick) { FX.click(); set(pick); return; }   // Chip gewählt → setzen/ersetzen
+    if (cur)  { FX.click(); set(null); return; }    // kein Chip, Becher besetzt → Metall herausnehmen
+    FX.error();                                      // nichts gewählt, Becher leer
   };
   const choose = (sym) => { FX.click(); setPick(sym); };
 
@@ -119,8 +129,10 @@ export default function Scene2Buffer({ room, onBack, onReveal, initiallySolved, 
 
         {/* Steuerleiste: Metall-Chips */}
         <View style={styles.band}>
-          <Text style={[styles.bandHint, { fontSize: 9 * u }]}>
-            {pick ? `„${pick}" → Becher antippen` : 'Metall wählen, dann Becher antippen'} · Ziel {fmtV(TARGET_MV)}
+          <Text style={[styles.bandHint, { fontSize: 9 * u, color: lock.locked ? '#f0907a' : '#aab6c6' }]}>
+            {lock.locked
+              ? `GESPERRT — ${lock.remainS}s warten`
+              : `${pick ? `„${pick}" → Becher antippen` : 'Metall wählen · besetzten Becher antippen = leeren'} · Ziel ${fmtV(TARGET_MV)}`}
           </Text>
           <View style={styles.chips}>
             {METALS.map((m) => (
