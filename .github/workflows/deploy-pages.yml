@@ -38,6 +38,7 @@ jobs:
           # from the template with the freshly-hashed bundle name.
           git checkout HEAD -- dist/canvaskit.js dist/canvaskit.wasm
           cp datenschutz.html dist/datenschutz.html
+          cp support.html dist/support.html
           touch dist/.nojekyll
           BUNDLE=$(basename "$(ls dist/_expo/static/js/web/index-*.js | head -1)")
           sed "s|__BUNDLE__|$BUNDLE|" tools/web/index.template.html > dist/index.html
