@@ -151,7 +151,6 @@ export default function Scene2Buffer({ room, onBack, onReveal, initiallySolved, 
   return (
     <SceneShell
       room={room}
-      bgSource={require('../../assets/scenes/scene_02_galvanic.png')}
       introLines={P.intro}
       hintLines={P.hint}
       solved={solved}

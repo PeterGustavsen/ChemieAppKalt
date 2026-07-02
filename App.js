@@ -188,7 +188,11 @@ export default function App() {
 
       if (left <= 0) {
         // Win/Fail race guard: never fail if every room is already solved.
-        if (solvedIdsRef.current.length < ROOMS.length) setGameState('fail');
+        // setTimeout wie beim Win-Übergang: der Fail-Screen-Mount direkt aus
+        // dem Interval-Tick friert die Skia-Canvas auf Web ein.
+        if (solvedIdsRef.current.length < ROOMS.length) {
+          setTimeout(() => setGameState('fail'), 0);
+        }
         return;
       }
 
@@ -211,9 +215,13 @@ export default function App() {
   }, [introDone, solvedIds, gameState, enqueueCall]);
 
   // Win when all rooms solved.
+  // setTimeout: nicht direkt aus dem Passiv-Effekt committen — die Canvas des
+  // Win-Screens friert auf Web sonst ein (Skia-Reconciler übernimmt keine
+  // Updates mehr, wenn der Mount aus diesem Kontext kommt).
   useEffect(() => {
     if (gameState === 'playing' && solvedIds.length === ROOMS.length) {
-      setGameState('win');
+      const id = setTimeout(() => setGameState('win'), 0);
+      return () => clearTimeout(id);
     }
   }, [solvedIds, gameState]);
 

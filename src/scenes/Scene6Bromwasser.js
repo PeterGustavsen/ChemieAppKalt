@@ -156,7 +156,6 @@ export default function Scene6Bromwasser({ room, onBack, onReveal, initiallySolv
   return (
     <SceneShell
       room={room}
-      bgSource={require('../../assets/scenes/scene_06_bromwasser.png')}
       introLines={P.intro}
       hintLines={P.hint}
       solved={solved}

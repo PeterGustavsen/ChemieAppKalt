@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import {
-  Canvas, Image as SkImage, Group, Rect, RadialGradient, LinearGradient,
-  FilterMode, MipmapMode,
+import { Group, Rect, RadialGradient, LinearGradient,
 } from '@shopify/react-native-skia';
+import LiveCanvas from '../engine/LiveCanvas';
 
-import AnimatedSprite from '../engine/AnimatedSprite';
-import { usePixelImage } from '../engine/usePixelImage';
 import { useStageLayout } from '../engine/layout';
+import { useAmbient } from '../engine/useAmbient';
+import { useCamera, camTransform, toScreenCam } from '../engine/useCamera';
+import HubArtHD, { DOOR_RECT, HORIZON } from '../art/HubArtHD';
+import MolarHD from '../art/MolarHD';
+import { HubWindowView, HubShutter, WIN } from '../art/HubWindow';
+import BackdropHD from '../ui/BackdropHD';
 import PixelDialog from '../ui/PixelDialog';
 import Terminal from '../ui/Terminal';
 import CRTOverlay from '../ui/CRTOverlay';
-import HubBackdrop from '../ui/HubBackdrop';
 import NavBar from '../ui/NavBar';
 import { FX } from '../fx/feedback';
 import {
@@ -20,8 +22,7 @@ import {
   SCENE_W, SCENE_H,
 } from '../config/game';
 
-const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
-const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0, frames: 15 };
+const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0 };
 const LAMP_MAIN = { x: SCENE_W / 2, y: 8 };       // ceiling centre lamp
 const LAMP_TASKS = { x: 534, y: 8 };               // second lamp centred above task boxes
 const MOLAR_EXIT_X = -200;
@@ -29,28 +30,46 @@ const WALK_SPEED = 7;                          // legacy px per ~32ms frame
 const WALK_PX_S = WALK_SPEED * (1000 / 32);    // ≈ 219 px/s (frame-rate independent)
 const SHUTTER_PX_S = 5 * (1000 / 32);          // ≈ 156 px/s
 
-// Window behind the PC
-const WIN = { x: 205, y: 14, w: 230, h: 94 };
+// Window behind the PC: WIN kommt aus art/HubWindow (geteilt mit SceneWin)
 const SHUTTER_TOP = WIN.y - WIN.h - 8;
 const SHUTTER_BOT = WIN.y - 1;
 
 const fmtTime = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
+// Merkt sich über den Raumwechsel hinweg, dass wir aus einer Kammer zurückkommen
+// (Modul-Singleton — Scene1Hub wird beim Betreten eines Raums unmounted).
+let returnFromRoom = false;
+
 export default function Scene1Hub({
   solvedIds, onSubmitCode, onEnterRoom,
   introDone, alarmPending, onIntroDone, timeLeft, danger, emergencyLight,
 }) {
   const L = useStageLayout();
-  const bg = usePixelImage(require('../../assets/scenes/scene_01_lab_hub.png'));
-  const molar = usePixelImage(require('../../assets/sprites/molar_idle.png'));
-  const molarSpeak = usePixelImage(require('../../assets/sprites/molar_speak.png'));
+  const t = useAmbient(30);
 
   const [dialog, setDialog] = useState(
     (introDone || alarmPending) ? null : { speaker: 'Prof. Dr. Molar', lines: INTRO_DIALOG }
   );
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [pressed, setPressed] = useState(null);
+
+  // ── Kamera: „Kopfdrehen" zu Stationen, Idle-Drift, Rückkehr-Kontinuität ────
+  // Rückkehr aus einer Kammer: Blick startet an der Tür und schwenkt zurück.
+  const startCam = useRef(
+    returnFromRoom
+      ? { cx: DOOR_RECT.x + DOOR_RECT.w / 2, cy: DOOR_RECT.y + DOOR_RECT.h / 2, z: 1.6 }
+      : null
+  ).current;
+  const { cam, flying, flyTo, reset } = useCamera({ drift: true, baseZoom: 1.045, start: startCam });
+  useEffect(() => {
+    // Vom Raum zurück: von der Tür zur Übersicht zurückschwenken.
+    if (returnFromRoom) {
+      returnFromRoom = false;
+      const id = setTimeout(() => reset(700), 140);
+      return () => clearTimeout(id);
+    }
+  }, [reset]);
 
   // ── Animated scene state ────────────────────────────────────────────────────
   const [molarX, setMolarX] = useState(MOLAR.x);
@@ -70,8 +89,7 @@ export default function Scene1Hub({
   const [shutterDone, setShutterDone] = useState(alreadyClosed);
 
   // ── Single animation loop ───────────────────────────────────────────────────
-  // Replaces five separate setIntervals (walk, bob, glow, shutter, task-lamp
-  // delay). One requestAnimationFrame loop reads the latest flags via a ref and
+  // One requestAnimationFrame loop reads the latest flags via a ref and
   // is frame-rate independent (dt-based), so timing matches on any device.
   const molarXRef = useRef(MOLAR.x);
   const bobRef = useRef(0);
@@ -147,7 +165,7 @@ export default function Scene1Hub({
   }, []);
 
   const target = ROOMS.find((r) => !solvedIds.includes(r.id)) || null;
-  const busy = !!dialog || terminalOpen || molarLeaving;
+  const busy = !!dialog || terminalOpen || molarLeaving || flying;
 
   const onDoor = (room) => {
     if (solvedIds.includes(room.id)) {
@@ -155,7 +173,12 @@ export default function Scene1Hub({
       setDialog({ speaker: 'Prof. Dr. Molar', lines: ['Diese Kammer ist bereits gelöst. Gut gemacht!'] });
     } else if (target && room.id === target.id) {
       FX.click();
-      onEnterRoom(room);
+      // „Kopf drehen": Blick schwenkt zur Labortür, dann betreten wir die Kammer.
+      // setTimeout: der Szenenwechsel darf NICHT aus dem rAF-Promise heraus
+      // committen — Canvases, die aus einem rAF-Kontext mounten, frieren auf
+      // Web ein (RNSkia-Reconciler verarbeitet dann keine Updates mehr).
+      returnFromRoom = true;
+      flyTo(DOOR_RECT, { zoom: 1.6, ms: 620 }).then(() => setTimeout(() => onEnterRoom(room), 0));
     } else {
       FX.click();
       const need = target ? target.id : '?';
@@ -164,6 +187,15 @@ export default function Scene1Hub({
         lines: [room.examine, `Noch verriegelt — löse zuerst Kammer ${need}.`],
       });
     }
+  };
+
+  const openTerminal = () => {
+    FX.click();
+    flyTo(TERMINAL, { zoom: 1.5, ms: 340 }).then(() => setTerminalOpen(true));
+  };
+  const closeTerminal = () => {
+    setTerminalOpen(false);
+    reset(430);
   };
 
   const handleDialogClose = () => {
@@ -178,138 +210,90 @@ export default function Scene1Hub({
   };
 
   const timerColor = danger ? '#f06b6b' : '#6fe87a';
+  const screenRect = toScreenCam(L, cam, TERMINAL_SCREEN);
+  const fz = cam.z;   // Schriftgröße folgt dem Kamera-Zoom
 
   return (
     <View style={styles.root}>
-      <HubBackdrop />
-      <Canvas style={{ flex: 1 }}>
-        <Group clip={{ x: 0, y: 0, width: SCENE_W, height: SCENE_H }}
-          transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
-          {bg && (
-            <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />
-          )}
+      <BackdropHD horizon={HORIZON} />
+      <LiveCanvas style={{ flex: 1 }}>
+        <Group clip={{ x: L.offsetX, y: L.offsetY, width: L.stageW, height: L.stageH }}>
+          <Group transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
+            <Group transform={camTransform(cam)}>
+              {/* Prozeduraler HD-Hub: Raum, Kammern-Wand, Terminal, Deko */}
+              <HubArtHD t={t} emergencyLight={emergencyLight} danger={danger} />
 
-          {/* ── Window behind PC ── */}
-          <Group clip={{ x: WIN.x, y: WIN.y, width: WIN.w, height: WIN.h }}>
-            {/* Sky */}
-            <Rect x={WIN.x} y={WIN.y} width={WIN.w} height={WIN.h}>
-              <LinearGradient
-                start={{ x: WIN.x, y: WIN.y }} end={{ x: WIN.x, y: WIN.y + WIN.h }}
-                colors={['#b8e0f7', '#6aaed6']}
-              />
-            </Rect>
-            {/* Clouds */}
-            <Rect x={WIN.x + 8}   y={WIN.y + 10} width={52} height={14} color="rgba(255,255,255,0.82)" />
-            <Rect x={WIN.x + 18}  y={WIN.y + 5}  width={38} height={12} color="rgba(255,255,255,0.65)" />
-            <Rect x={WIN.x + 130} y={WIN.y + 14} width={60} height={16} color="rgba(255,255,255,0.78)" />
-            <Rect x={WIN.x + 142} y={WIN.y + 8}  width={42} height={12} color="rgba(255,255,255,0.60)" />
-            {/* Industrial silhouettes */}
-            <Rect x={WIN.x + 10}  y={WIN.y + 58} width={28} height={36} color="#3a4d58" />
-            <Rect x={WIN.x + 20}  y={WIN.y + 42} width={8}  height={16} color="#3a4d58" />
-            <Rect x={WIN.x + 45}  y={WIN.y + 48} width={38} height={46} color="#2d3f4a" />
-            <Rect x={WIN.x + 52}  y={WIN.y + 32} width={7}  height={17} color="#2d3f4a" />
-            <Rect x={WIN.x + 67}  y={WIN.y + 28} width={7}  height={21} color="#2d3f4a" />
-            <Rect x={WIN.x + 92}  y={WIN.y + 52} width={30} height={42} color="#38505c" />
-            <Rect x={WIN.x + 88}  y={WIN.y + 48} width={38} height={8}  color="#38505c" />
-            <Rect x={WIN.x + 132} y={WIN.y + 62} width={60} height={32} color="#324550" />
-            <Rect x={WIN.x + 148} y={WIN.y + 46} width={9}  height={17} color="#324550" />
-            <Rect x={WIN.x + 170} y={WIN.y + 40} width={9}  height={23} color="#324550" />
-            {/* Ground strip */}
-            <Rect x={WIN.x} y={WIN.y + 88} width={WIN.w} height={6} color="#26363f" />
-          </Group>
-          {/* Industrial lab window frame — steel grey with bolts */}
-          <Rect x={WIN.x - 6} y={WIN.y - 6} width={WIN.w + 12} height={WIN.h + 12}
-            color="#3e4d58" style="stroke" strokeWidth={12} />
-          {/* Inner bezel line */}
-          <Rect x={WIN.x - 1} y={WIN.y - 1} width={WIN.w + 2} height={WIN.h + 2}
-            color="#5a6e7c" style="stroke" strokeWidth={2} />
-          {/* Dividers */}
-          <Rect x={WIN.x + WIN.w / 3 - 2} y={WIN.y} width={4} height={WIN.h} color="#3e4d58" />
-          <Rect x={WIN.x + WIN.w * 2 / 3 - 2} y={WIN.y} width={4} height={WIN.h} color="#3e4d58" />
-          <Rect x={WIN.x} y={WIN.y + WIN.h / 2 - 2} width={WIN.w} height={4} color="#3e4d58" />
-          {/* Corner bolts */}
-          {[[-5,-5],[WIN.w-1,-5],[-5,WIN.h-1],[WIN.w-1,WIN.h-1]].map(([dx,dy],i) => (
-            <Rect key={i} x={WIN.x+dx} y={WIN.y+dy} width={6} height={6} color="#6a8090" />
-          ))}
-          {/* Emergency lighting */}
-          {emergencyLight && (
-            <Group>
-              <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.52)" />
-              {/* Main ceiling lamp */}
-              <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
-                <RadialGradient c={LAMP_MAIN} r={260} colors={['#d41808', '#00000000']} />
-              </Rect>
-              {/* Second lamp above task boxes — activates 3 s later */}
-              {taskLamp && (
+              <HubWindowView t={t} />
+
+              {/* Emergency lighting */}
+              {emergencyLight && (
                 <Group>
-                  {/* Wide red wash */}
+                  <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.52)" />
+                  {/* Main ceiling lamp */}
                   <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
-                    <RadialGradient c={LAMP_TASKS} r={230} colors={['#ff2a08', '#d4180840', '#00000000']} />
+                    <RadialGradient c={LAMP_MAIN} r={260} colors={['#d41808', '#00000000']} />
                   </Rect>
-                  {/* Bright lamp-core hot-spot */}
-                  <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={Math.min(1, glow * 1.8)}>
-                    <RadialGradient c={LAMP_TASKS} r={50} colors={['#ff7040', '#ff200800']} />
-                  </Rect>
+                  {/* Second lamp above task boxes — activates 3 s later */}
+                  {taskLamp && (
+                    <Group>
+                      {/* Wide red wash */}
+                      <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
+                        <RadialGradient c={LAMP_TASKS} r={230} colors={['#ff2a08', '#d4180840', '#00000000']} />
+                      </Rect>
+                      {/* Bright lamp-core hot-spot */}
+                      <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={Math.min(1, glow * 1.8)}>
+                        <RadialGradient c={LAMP_TASKS} r={50} colors={['#ff7040', '#ff200800']} />
+                      </Rect>
+                    </Group>
+                  )}
                 </Group>
               )}
+
+              {/* Metal shutter — above emergency overlay so it stays visible in red light */}
+              <HubShutter shutterY={shutterY} redTint />
+
+              {/* Molar — Vektor-Figur; spricht/blinzelt/geht (ersetzt Pixel-Sprites) */}
+              {!molarGone && (
+                <MolarHD
+                  x={molarX} y={MOLAR.y + molarBobY} scale={MOLAR.scale}
+                  mode={dialogOpen ? 'speak' : 'idle'}
+                  walking={molarLeaving} t={t}
+                />
+              )}
+
+              {/* Konsole-Hover-Glow (Navigation/Status liegen in der NavBar) */}
+              {!busy && pressed && (
+                <PressGlow rectObj={pressed.rect} color={pressed.color} />
+              )}
             </Group>
-          )}
-
-          {/* Metal shutter — above emergency overlay so it stays visible in red light */}
-          <Group clip={{ x: WIN.x - 6, y: WIN.y - 6, width: WIN.w + 12, height: WIN.h + 12 }}>
-            <Rect x={WIN.x - 6} y={shutterY} width={WIN.w + 12} height={WIN.h + 14} color="#3e3e3e" />
-            {[...Array(10)].map((_, i) => (
-              <Rect key={i} x={WIN.x - 6} y={shutterY + i * 11} width={WIN.w + 12} height={2} color="#2e2e2e" />
-            ))}
-            {/* Leading edge highlight */}
-            <Rect x={WIN.x - 6} y={shutterY + WIN.h + 10} width={WIN.w + 12} height={4} color="#606060" />
-            {/* Red emergency tint — makes shutter look lit by alarm lamp */}
-            <Rect x={WIN.x - 6} y={shutterY} width={WIN.w + 12} height={WIN.h + 14}
-              color="rgba(180,30,0,0.18)" />
           </Group>
-
-          {/* Molar — Sprech-Sheet (Mund auf/zu) waehrend Dialog, sonst Idle */}
-          {!molarGone && (
-            <AnimatedSprite
-              image={dialogOpen ? molarSpeak : molar}
-              frameCount={dialogOpen ? 8 : MOLAR.frames}
-              frameW={MOLAR.frameW} frameH={MOLAR.frameH}
-              x={molarX} y={MOLAR.y + molarBobY} scale={MOLAR.scale}
-              fps={dialogOpen ? 4 : 3}
-            />
-          )}
-
-          {/* Konsole-Hover-Glow (Navigation/Status liegen in der NavBar) */}
-          {!busy && pressed && (
-            <PressGlow rectObj={pressed.rect} color={pressed.color} />
-          )}
         </Group>
-      </Canvas>
+      </LiveCanvas>
 
-{!terminalOpen && (
-        <View pointerEvents="none" style={[styles.screen, L.toScreen(TERMINAL_SCREEN)]}>
+      {!terminalOpen && (
+        <View pointerEvents="none" style={[styles.screen, screenRect]}>
           {!emergencyLight ? (
             <>
-              <Text style={styles.screenBig}>CHEM. LABS</Text>
-              <Text style={styles.screenSub}>MUENCHEN</Text>
-              <Text style={styles.screenSub}>STATUS: OK</Text>
+              <Text style={[styles.screenBig, { fontSize: 16 * fz }]}>CHEM. LABS</Text>
+              <Text style={[styles.screenSub, { fontSize: 11 * fz }]}>MUENCHEN</Text>
+              <Text style={[styles.screenSub, { fontSize: 11 * fz }]}>STATUS: OK</Text>
             </>
           ) : alarmPending ? (
             <>
-              <Text style={styles.screenAlarm}>[!]</Text>
-              <Text style={styles.screenAlarm}>ALARM</Text>
-              <Text style={styles.screenAlarmSub}>GESPERRT</Text>
-              <Text style={styles.screenSub}>CODES EINGEBEN</Text>
+              <Text style={[styles.screenAlarm, { fontSize: 17 * fz }]}>[!]</Text>
+              <Text style={[styles.screenAlarm, { fontSize: 17 * fz }]}>ALARM</Text>
+              <Text style={[styles.screenAlarmSub, { fontSize: 13 * fz }]}>GESPERRT</Text>
+              <Text style={[styles.screenSub, { fontSize: 11 * fz }]}>CODES EINGEBEN</Text>
             </>
           ) : (
             <>
-              <Text style={styles.screenTitle}>SICHERHEITS-</Text>
-              <Text style={styles.screenTitle}>TERMINAL v7</Text>
-              <Text style={styles.screenCodes}>CODES {solvedIds.length}/{ROOMS.length}</Text>
+              <Text style={[styles.screenTitle, { fontSize: 11 * fz }]}>SICHERHEITS-</Text>
+              <Text style={[styles.screenTitle, { fontSize: 11 * fz }]}>TERMINAL v7</Text>
+              <Text style={[styles.screenCodes, { fontSize: 13 * fz }]}>CODES {solvedIds.length}/{ROOMS.length}</Text>
               {timeLeft !== null ? (
-                <Text style={[styles.screenTimer, { color: timerColor }]}>{fmtTime(timeLeft)}</Text>
+                <Text style={[styles.screenTimer, { color: timerColor, fontSize: 18 * fz }]}>{fmtTime(timeLeft)}</Text>
               ) : (
-                <Text style={styles.screenHint}>{'>'} TIPPEN</Text>
+                <Text style={[styles.screenHint, { fontSize: 11 * fz }]}>{'>'} TIPPEN</Text>
               )}
             </>
           )}
@@ -322,14 +306,14 @@ export default function Scene1Hub({
       {!busy && (
         <>
           {/* Konsole bleibt anklickbar; Navigation läuft über die untere Leiste */}
-          <Hotspot layout={L} rectObj={TERMINAL} color="#6fe87a"
+          <Hotspot rect={toScreenCam(L, cam, TERMINAL)}
             onIn={() => setPressed({ rect: TERMINAL, color: '#6fe87a' })}
             onOut={() => setPressed(null)}
-            onPress={() => { FX.click(); setTerminalOpen(true); }} />
+            onPress={openTerminal} />
           <NavBar
             rooms={ROOMS} solvedIds={solvedIds} target={target}
             onPick={onDoor}
-            onTerminal={() => { FX.click(); setTerminalOpen(true); }}
+            onTerminal={openTerminal}
           />
         </>
       )}
@@ -343,7 +327,7 @@ export default function Scene1Hub({
           rooms={ROOMS}
           solvedIds={solvedIds}
           onSubmit={onSubmitCode}
-          onClose={() => setTerminalOpen(false)}
+          onClose={closeTerminal}
         />
       )}
     </View>
@@ -361,11 +345,10 @@ function PressGlow({ rectObj, color }) {
   );
 }
 
-function Hotspot({ layout, rectObj, color, onIn, onOut, onPress }) {
-  const s = layout.toScreen(rectObj);
+function Hotspot({ rect, onIn, onOut, onPress }) {
   return (
     <Pressable
-      style={[styles.hotspot, { left: s.left, top: s.top, width: s.width, height: s.height }]}
+      style={[styles.hotspot, { left: rect.left, top: rect.top, width: rect.width, height: rect.height }]}
       onPressIn={onIn}
       onPressOut={onOut}
       onPress={onPress}
@@ -377,12 +360,12 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0d0f17' },
   hotspot: { position: 'absolute' },
   screen: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  screenBig: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 16, fontWeight: 'bold', letterSpacing: 2 },
-  screenTitle: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1 },
-  screenCodes: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 13, marginTop: 4, fontWeight: 'bold' },
-  screenHint: { color: '#2f8f3a', fontFamily: 'monospace', fontSize: 11, marginTop: 6 },
-  screenTimer: { fontFamily: 'monospace', fontSize: 18, marginTop: 4, fontWeight: 'bold', letterSpacing: 2 },
-  screenSub: { color: '#5abf68', fontFamily: 'monospace', fontSize: 11, letterSpacing: 1 },
-  screenAlarm: { color: '#ff3010', fontFamily: 'monospace', fontSize: 17, fontWeight: 'bold', letterSpacing: 2 },
-  screenAlarmSub: { color: '#cc2010', fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', letterSpacing: 2 },
+  screenBig: { color: '#6fe87a', fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: 2 },
+  screenTitle: { color: '#6fe87a', fontFamily: 'monospace', letterSpacing: 1 },
+  screenCodes: { color: '#6fe87a', fontFamily: 'monospace', marginTop: 4, fontWeight: 'bold' },
+  screenHint: { color: '#2f8f3a', fontFamily: 'monospace', marginTop: 6 },
+  screenTimer: { fontFamily: 'monospace', marginTop: 4, fontWeight: 'bold', letterSpacing: 2 },
+  screenSub: { color: '#5abf68', fontFamily: 'monospace', letterSpacing: 1 },
+  screenAlarm: { color: '#ff3010', fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: 2 },
+  screenAlarmSub: { color: '#cc2010', fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: 2 },
 });

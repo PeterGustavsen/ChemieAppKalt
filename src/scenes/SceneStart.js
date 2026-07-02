@@ -1,21 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
-import {
-  Canvas, Image as SkImage, Group, Rect, Paint,
-  FilterMode, MipmapMode, Blur,
-} from '@shopify/react-native-skia';
+import { Group, Rect, Paint, Blur } from '@shopify/react-native-skia';
+import LiveCanvas from '../engine/LiveCanvas';
 
-import { usePixelImage } from '../engine/usePixelImage';
 import { useStageLayout } from '../engine/layout';
-import SceneBackdrop from '../ui/SceneBackdrop';
+import { useAmbient } from '../engine/useAmbient';
+import HubArtHD, { HORIZON } from '../art/HubArtHD';
+import { HubWindowView } from '../art/HubWindow';
+import BackdropHD from '../ui/BackdropHD';
 import { SCENE_W, SCENE_H } from '../config/game';
-
-const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
-const BG = require('../../assets/scenes/scene_01_lab_hub.png');
 
 export default function SceneStart({ onStart }) {
   const L = useStageLayout();
-  const bg = usePixelImage(BG);
+  const t = useAmbient(24);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const btnAnim = useRef(new Animated.Value(0)).current;
@@ -31,21 +28,20 @@ export default function SceneStart({ onStart }) {
   return (
     <View style={styles.root}>
       {/* Füllt die Ränder → keine schwarzen Letterbox-Balken. */}
-      <SceneBackdrop source={BG} darken={0.55} />
-      {/* Blurred lab background */}
-      <Canvas style={{ flex: 1 }}>
+      <BackdropHD horizon={HORIZON} darken={0.6} />
+      {/* Weichgezeichnetes, lebendiges HD-Labor als Titel-Hintergrund */}
+      <LiveCanvas style={{ flex: 1 }}>
         <Group transform={[
           { translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }
         ]}>
-          {bg && (
-            <Group layer={<Paint><Blur blur={4} /></Paint>}>
-              <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />
-            </Group>
-          )}
+          <Group layer={<Paint><Blur blur={3.5} /></Paint>}>
+            <HubArtHD t={t} />
+            <HubWindowView t={t} />
+          </Group>
           {/* Dark vignette overlay */}
           <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.55)" />
         </Group>
-      </Canvas>
+      </LiveCanvas>
 
       {/* Title + button overlay */}
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
@@ -83,13 +79,14 @@ const styles = StyleSheet.create({
     textShadowColor: '#6fd3dd', textShadowRadius: 10,
   },
   tagline: {
-    color: '#5a7080', fontFamily: 'monospace', fontSize: 11,
+    color: '#8fa6b4', fontFamily: 'monospace', fontSize: 11,
     letterSpacing: 2, marginTop: 4, marginBottom: 28,
   },
   btn: {
-    borderWidth: 2, borderColor: '#6fd3dd',
+    borderWidth: 2, borderColor: '#6fd3dd', borderRadius: 8,
     paddingHorizontal: 40, paddingVertical: 14,
-    marginTop: 8,
+    marginTop: 8, backgroundColor: 'rgba(10,16,24,0.55)',
+    shadowColor: '#6fd3dd', shadowOpacity: 0.35, shadowRadius: 18,
   },
   btnPressed: { backgroundColor: 'rgba(111,211,221,0.12)' },
   btnTxt: {

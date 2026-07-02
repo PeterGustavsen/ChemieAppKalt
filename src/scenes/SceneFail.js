@@ -1,42 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import {
-  Canvas, Image as SkImage, Group, Rect, RadialGradient,
-  FilterMode, MipmapMode,
-} from '@shopify/react-native-skia';
+import { Group, Rect, RadialGradient } from '@shopify/react-native-skia';
+import LiveCanvas from '../engine/LiveCanvas';
 
-import { usePixelImage } from '../engine/usePixelImage';
 import { useStageLayout } from '../engine/layout';
-import SceneBackdrop from '../ui/SceneBackdrop';
+import { useAmbient } from '../engine/useAmbient';
+import HubArtHD, { HORIZON } from '../art/HubArtHD';
+import { HubShutter, WIN } from '../art/HubWindow';
+import BackdropHD from '../ui/BackdropHD';
 import { ROOMS, SCENE_W, SCENE_H } from '../config/game';
 
-const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
 const LAMP = { x: SCENE_W / 2, y: 8 };
-const BG = require('../../assets/scenes/scene_01_lab_hub.png');
 
 export default function SceneFail({ solvedIds, onRestart }) {
   const L = useStageLayout();
-  const bg = usePixelImage(BG);
-  const [glow, setGlow] = useState(0.4);
+  const t = useAmbient(30);
 
   // Fast danger pulse — system shutdown imminent
-  useEffect(() => {
-    let t = 0;
-    const id = setInterval(() => {
-      t += 32;
-      const phase = (Math.sin((t / 650) * Math.PI * 2) + 1) / 2;
-      setGlow(0.28 + 0.42 * phase);
-    }, 32);
-    return () => clearInterval(id);
-  }, []);
+  const glow = 0.28 + 0.42 * ((Math.sin((t / 0.65) * Math.PI * 2) + 1) / 2);
 
   return (
     <View style={styles.root}>
       {/* Füllt die Ränder → keine schwarzen Letterbox-Balken. */}
-      <SceneBackdrop source={BG} darken={0.7} />
-      <Canvas style={{ flex: 1 }}>
+      <BackdropHD horizon={HORIZON} darken={0.7} />
+      <LiveCanvas style={{ flex: 1 }}>
         <Group transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
-          {bg && <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />}
+          <HubArtHD t={t} emergencyLight danger />
+          {/* Rollladen bleibt zu — eingesperrt */}
+          <HubShutter shutterY={WIN.y - 1} redTint />
           <Group>
             <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.82)" />
             <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
@@ -44,7 +35,7 @@ export default function SceneFail({ solvedIds, onRestart }) {
             </Rect>
           </Group>
         </Group>
-      </Canvas>
+      </LiveCanvas>
 
       {/* Fail overlay — no card, text directly on scene */}
       <View style={styles.topBanner}>

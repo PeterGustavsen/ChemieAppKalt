@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import {
-  Canvas, Image as SkImage, Group, Rect, RadialGradient, LinearGradient,
-  FilterMode, MipmapMode,
-} from '@shopify/react-native-skia';
+import { Group } from '@shopify/react-native-skia';
+import LiveCanvas from '../engine/LiveCanvas';
 
-import AnimatedSprite from '../engine/AnimatedSprite';
-import { usePixelImage } from '../engine/usePixelImage';
 import { useStageLayout } from '../engine/layout';
+import { useAmbient } from '../engine/useAmbient';
+import HubArtHD, { HORIZON } from '../art/HubArtHD';
+import { HubWindowView, HubShutter, WIN } from '../art/HubWindow';
+import MolarHD from '../art/MolarHD';
+import BackdropHD from '../ui/BackdropHD';
 import PixelDialog from '../ui/PixelDialog';
-import SceneBackdrop from '../ui/SceneBackdrop';
 import { ROOMS, WIN_DIALOG, SCENE_W, SCENE_H } from '../config/game';
 
-const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
-const BG = require('../../assets/scenes/scene_01_lab_hub.png');
-const MOLAR = { x: 60, y: 148, frameW: 72, frameH: 112, scale: 2.0, frames: 15 };
-
-const WIN = { x: 205, y: 14, w: 230, h: 94 };
+const MOLAR = { x: 60, y: 148, scale: 2.0 };
 const SHUTTER_TOP = WIN.y - WIN.h - 8;
 const SHUTTER_BOT = WIN.y - 1;
 
@@ -25,9 +21,7 @@ const fmtTime = (s) =>
 
 export default function SceneWin({ elapsed, onRestart }) {
   const L = useStageLayout();
-  const bg = usePixelImage(BG);
-  const molar = usePixelImage(require('../../assets/sprites/molar_idle.png'));
-  const molarSpeak = usePixelImage(require('../../assets/sprites/molar_speak.png'));
+  const t = useAmbient(30);
 
   const [dialogDone, setDialogDone] = useState(false);
 
@@ -60,64 +54,25 @@ export default function SceneWin({ elapsed, onRestart }) {
   return (
     <View style={styles.root}>
       {/* Füllt die Ränder → keine schwarzen Letterbox-Balken. */}
-      <SceneBackdrop source={BG} darken={0.6} />
-      <Canvas style={{ flex: 1 }}>
-        <Group clip={{ x: 0, y: 0, width: SCENE_W, height: SCENE_H }}
-          transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
-          {bg && <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />}
+      <BackdropHD horizon={HORIZON} darken={0.45} />
+      <LiveCanvas style={{ flex: 1 }}>
+        <Group clip={{ x: L.offsetX, y: L.offsetY, width: L.stageW, height: L.stageH }}>
+          <Group transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
+            {/* Befreites Labor: kein Alarm */}
+            <HubArtHD t={t} />
+            {/* Window — blue sky revealed as shutter rises */}
+            <HubWindowView t={t} />
+            <HubShutter shutterY={shutterY} />
 
-          {/* Window — blue sky revealed as shutter rises */}
-          <Group clip={{ x: WIN.x, y: WIN.y, width: WIN.w, height: WIN.h }}>
-            <Rect x={WIN.x} y={WIN.y} width={WIN.w} height={WIN.h}>
-              <LinearGradient start={{ x: WIN.x, y: WIN.y }} end={{ x: WIN.x, y: WIN.y + WIN.h }}
-                colors={['#b8e0f7', '#6aaed6']} />
-            </Rect>
-            <Rect x={WIN.x + 8}   y={WIN.y + 10} width={52} height={14} color="rgba(255,255,255,0.82)" />
-            <Rect x={WIN.x + 18}  y={WIN.y + 5}  width={38} height={12} color="rgba(255,255,255,0.65)" />
-            <Rect x={WIN.x + 130} y={WIN.y + 14} width={60} height={16} color="rgba(255,255,255,0.78)" />
-            <Rect x={WIN.x + 142} y={WIN.y + 8}  width={42} height={12} color="rgba(255,255,255,0.60)" />
-            <Rect x={WIN.x + 10}  y={WIN.y + 58} width={28} height={36} color="#3a4d58" />
-            <Rect x={WIN.x + 20}  y={WIN.y + 42} width={8}  height={16} color="#3a4d58" />
-            <Rect x={WIN.x + 45}  y={WIN.y + 48} width={38} height={46} color="#2d3f4a" />
-            <Rect x={WIN.x + 52}  y={WIN.y + 32} width={7}  height={17} color="#2d3f4a" />
-            <Rect x={WIN.x + 67}  y={WIN.y + 28} width={7}  height={21} color="#2d3f4a" />
-            <Rect x={WIN.x + 92}  y={WIN.y + 52} width={30} height={42} color="#38505c" />
-            <Rect x={WIN.x + 132} y={WIN.y + 62} width={60} height={32} color="#324550" />
-            <Rect x={WIN.x + 148} y={WIN.y + 46} width={9}  height={17} color="#324550" />
-            <Rect x={WIN.x + 170} y={WIN.y + 40} width={9}  height={23} color="#324550" />
-            <Rect x={WIN.x} y={WIN.y + 88} width={WIN.w} height={6} color="#26363f" />
+            {/* Molar kommt zurück — läuft herein, spricht dann */}
+            <MolarHD
+              x={molarX} y={MOLAR.y} scale={MOLAR.scale}
+              mode={molarArrived && !dialogDone ? 'speak' : 'idle'}
+              walking={!molarArrived} t={t}
+            />
           </Group>
-          {/* Window frame */}
-          <Rect x={WIN.x - 6} y={WIN.y - 6} width={WIN.w + 12} height={WIN.h + 12}
-            color="#3e4d58" style="stroke" strokeWidth={12} />
-          <Rect x={WIN.x - 1} y={WIN.y - 1} width={WIN.w + 2} height={WIN.h + 2}
-            color="#5a6e7c" style="stroke" strokeWidth={2} />
-          <Rect x={WIN.x + WIN.w / 3 - 2} y={WIN.y} width={4} height={WIN.h} color="#3e4d58" />
-          <Rect x={WIN.x + WIN.w * 2 / 3 - 2} y={WIN.y} width={4} height={WIN.h} color="#3e4d58" />
-          <Rect x={WIN.x} y={WIN.y + WIN.h / 2 - 2} width={WIN.w} height={4} color="#3e4d58" />
-          {[[-5,-5],[WIN.w-1,-5],[-5,WIN.h-1],[WIN.w-1,WIN.h-1]].map(([dx,dy],i) => (
-            <Rect key={i} x={WIN.x+dx} y={WIN.y+dy} width={6} height={6} color="#6a8090" />
-          ))}
-
-          {/* Shutter slides back up */}
-          <Group clip={{ x: WIN.x - 6, y: WIN.y - 6, width: WIN.w + 12, height: WIN.h + 12 }}>
-            <Rect x={WIN.x - 6} y={shutterY} width={WIN.w + 12} height={WIN.h + 14} color="#3e3e3e" />
-            {[...Array(10)].map((_, i) => (
-              <Rect key={i} x={WIN.x - 6} y={shutterY + i * 11} width={WIN.w + 12} height={2} color="#2e2e2e" />
-            ))}
-            <Rect x={WIN.x - 6} y={shutterY + WIN.h + 10} width={WIN.w + 12} height={4} color="#606060" />
-          </Group>
-
-          {/* Molar walks back in; Sprech-Sheet waehrend er redet */}
-          <AnimatedSprite
-            image={molarArrived && !dialogDone ? molarSpeak : molar}
-            frameCount={molarArrived && !dialogDone ? 8 : MOLAR.frames}
-            frameW={MOLAR.frameW} frameH={MOLAR.frameH}
-            x={molarX} y={MOLAR.y} scale={MOLAR.scale}
-            fps={molarArrived && !dialogDone ? 4 : 3}
-          />
         </Group>
-      </Canvas>
+      </LiveCanvas>
 
       {molarArrived && !dialogDone && (
         <PixelDialog
@@ -176,7 +131,10 @@ const styles = StyleSheet.create({
   codeCol: { alignItems: 'center' },
   codeVal: { fontFamily: 'monospace', fontSize: 20, fontWeight: 'bold', letterSpacing: 4 },
   codeTheme: { color: '#718096', fontFamily: 'monospace', fontSize: 8, marginTop: 2 },
-  btn: { borderWidth: 2, borderColor: '#6fe87a', paddingHorizontal: 28, paddingVertical: 12 },
+  btn: {
+    borderWidth: 2, borderColor: '#6fe87a', borderRadius: 8,
+    paddingHorizontal: 28, paddingVertical: 12, backgroundColor: 'rgba(10,16,24,0.55)',
+  },
   btnPressed: { backgroundColor: 'rgba(111,232,122,0.1)' },
   btnTxt: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', letterSpacing: 1 },
 });
