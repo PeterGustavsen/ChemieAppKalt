@@ -150,7 +150,6 @@ export default function Scene5Ester({ room, onBack, onReveal, initiallySolved, e
   return (
     <SceneShell
       room={room}
-      bgSource={require('../../assets/scenes/scene_05_bromonium.png')}
       introLines={P.intro}
       hintLines={P.hint}
       solved={solved}

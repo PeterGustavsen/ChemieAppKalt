@@ -128,7 +128,6 @@ export default function Scene7Isomerie({ room, onBack, onReveal, initiallySolved
   return (
     <SceneShell
       room={room}
-      bgSource={require('../../assets/scenes/scene_07_isomerie.png')}
       introLines={P.intro}
       hintLines={P.hint}
       solved={solved}

@@ -1,12 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Text, Image, Pressable, StyleSheet, Animated } from 'react-native';
+import { Text, Pressable, StyleSheet, Animated } from 'react-native';
+import { Canvas, Group } from '@shopify/react-native-skia';
+import MolarHD from '../art/MolarHD';
+import { useAmbient } from '../engine/useAmbient';
 
-const FRAME_W = 72;
-const FRAME_H = 112;
-const SPEAK_FRAMES = 8;        // molar_speak.png: zu + versch. Mundformen
 const AVATAR = 64;
-const ZOOM = 1.4;
-const FW_Z = FRAME_W * ZOOM;   // ein Frame, gezoomt
 const AUTO_MS = 3000;          // Verweildauer pro Zeile, nachdem sie fertig getippt ist
 
 export default function RadioCall({ lines, onDismiss }) {
@@ -43,12 +41,7 @@ export default function RadioCall({ lines, onDismiss }) {
 
   // Mund bewegt sich, solange noch getippt wird (= er "spricht")
   const speaking = !done;
-  const [mouth, setMouth] = useState(0);
-  useEffect(() => {
-    if (!speaking) { setMouth(0); return; }
-    const id = setInterval(() => setMouth((m) => (m + 1) % SPEAK_FRAMES), 200);
-    return () => clearInterval(id);
-  }, [speaking]);
+  const t = useAmbient(20);
 
   const dismiss = () => {
     Animated.timing(slide, { toValue: -160, duration: 200, useNativeDriver: true }).start(onDismiss);
@@ -74,15 +67,18 @@ export default function RadioCall({ lines, onDismiss }) {
   }, [done, lineIdx]);
 
   return (
-    <Animated.View style={[styles.root, { transform: [{ translateY: slide }] }]}>
+    // box-none: nur die Karte fängt Taps — der volle Breitstreifen darunter
+    // darf Klicks auf Topbar/Terminal-✕ nicht blockieren.
+    <Animated.View pointerEvents="box-none" style={[styles.root, { transform: [{ translateY: slide }] }]}>
       <Pressable style={styles.card} onPress={advance}>
         <Animated.View style={styles.header}>
           <Animated.View style={styles.avatar}>
-            <Image
-              source={require('../../assets/sprites/molar_speak.png')}
-              style={[styles.sprite, { left: -20 - mouth * FW_Z }]}
-              resizeMode="stretch"
-            />
+            {/* Vektor-Molar-Kopf (Ausschnitt) statt Sprite-Sheet */}
+            <Canvas style={{ width: AVATAR, height: AVATAR }}>
+              <Group transform={[{ translateX: -18 }, { translateY: 7 }, { scale: 1.4 }]}>
+                <MolarHD x={0} y={0} scale={1} mode={speaking ? 'speak' : 'idle'} t={t} />
+              </Group>
+            </Canvas>
           </Animated.View>
           <Animated.View>
             <Text style={styles.caller}>{'>> FUNK-EMPFANG'}</Text>
@@ -123,13 +119,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden', backgroundColor: '#1a1d2a',
     borderWidth: 2, borderColor: '#d41808',
     marginRight: 12,
-  },
-  sprite: {
-    // Kopf gezoomt ins runde Avatar. Breite = ganzes Sheet, damit ein Frame
-    // korrekt skaliert; horizontaler Offset (inline) waehlt die Mundform.
-    position: 'absolute',
-    width: FRAME_W * SPEAK_FRAMES * ZOOM, height: FRAME_H * ZOOM,
-    top: -4,
   },
   caller: {
     color: '#d41808', fontFamily: 'monospace',

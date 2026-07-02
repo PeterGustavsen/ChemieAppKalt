@@ -121,7 +121,6 @@ export default function Scene4Galvanic({ room, onBack, onReveal, initiallySolved
   return (
     <SceneShell
       room={room}
-      bgSource={require('../../assets/scenes/scene_04_rosten.png')}
       introLines={P.intro}
       hintLines={P.hint}
       solved={solved}

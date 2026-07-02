@@ -1,103 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import {
-  Canvas, Image as SkImage, Group, Rect, RadialGradient,
-  FilterMode, MipmapMode,
-} from '@shopify/react-native-skia';
 
-import { useStageLayout } from '../engine/layout';
-import { usePixelImage } from '../engine/usePixelImage';
+import { useWorld } from '../engine/WorldContext';
 import { useSpriteFrame } from '../engine/useSprite';
 import PixelDialog from '../ui/PixelDialog';
-import CRTOverlay from '../ui/CRTOverlay';
 import ClipboardNote from '../ui/ClipboardNote';
-import SceneBackdrop from '../ui/SceneBackdrop';
-import { SCENE_W, SCENE_H } from '../config/game';
 import { FX } from '../fx/feedback';
 
-const NEAREST = { filter: FilterMode.Nearest, mipmap: MipmapMode.None };
-const LAMP = { x: SCENE_W / 2, y: 8 };
+/*
+ * SceneShell — Rahmen der 6 Rätsel-Stationen. Zeichnet KEINE eigene Canvas
+ * mehr: das Spiel ist EINE durchgehende Laborhalle (WorldLab), und die Kamera
+ * fährt zur Station. SceneShell publiziert den Skia-Rätsel-Layer über den
+ * WorldContext in die Welt-Canvas und rendert selbst nur noch die DOM-Teile:
+ * Topbar, Lab-Notiz, Overlays der Szene, Hinweis/Intro-Dialoge, Code-Panel.
+ * Die Rätsel-Szenen selbst bleiben unverändert.
+ */
+
 // Über das gemalte Klemmbrett auf der Werkbank (Mitte unten) gelegt.
 const NOTE = { x: 286, y: 222, w: 68, h: 36 };
 
 export default function SceneShell({
-  room, bgSource, introLines, hintLines, solved, solvedLines,
-  onBack, renderScene, renderOverlay, emergencyLight, danger,
+  room, introLines, hintLines, solved, solvedLines,
+  onBack, renderScene, renderOverlay,
 }) {
-  const L = useStageLayout();
-  const bg = usePixelImage(bgSource);
-  // I4: Intro NICHT mehr automatisch als Vollbild-Box — antippbare Notiz im Bild.
+  const world = useWorld();
   const [dialog, setDialog] = useState(null);
   const [hintOpen, setHintOpen] = useState(false);
   const [introRead, setIntroRead] = useState(false);
 
-  const busy = !!dialog || hintOpen || solved;
-  const pulse = useSpriteFrame(40, 18);             // Aufmerksamkeit auf die Notiz
-  const noteGlow = !introRead && (pulse % 40) < 20;
-
-  const [glow, setGlow] = useState(0.25);
+  // Rätsel-Layer in die Welt-Canvas publizieren (Ref-basiert, jede Renderrunde
+  // aktuell — die Welt liest ihn bei ihrem nächsten Frame).
+  const renderSceneRef = useRef(renderScene);
+  renderSceneRef.current = renderScene;
   useEffect(() => {
-    if (!emergencyLight) { setGlow(0); return; }
-    let t = 0;
-    const period = danger ? 700 : 2000;
-    const lo = danger ? 0.40 : 0.28;
-    const hi = danger ? 0.75 : 0.55;
-    const id = setInterval(() => {
-      t += 32;
-      const phase = (Math.sin((t / period) * Math.PI * 2) + 1) / 2;
-      setGlow(lo + (hi - lo) * phase);
-    }, 32);
-    return () => clearInterval(id);
-  }, [emergencyLight, danger]);
+    world.setLayer((L) => (renderSceneRef.current ? renderSceneRef.current(L) : null));
+    return () => world.setLayer(null);
+  }, [world]);
+
+  const busy = !!dialog || hintOpen || solved || world.traveling;
+  // Aufmerksamkeits-Puls der Notiz: 1×/s Toggle statt 18-fps-Ticker (DOM-Ruhe)
+  const pulse = useSpriteFrame(2, 0.9);
+  const noteGlow = !introRead && pulse === 0;
 
   const openIntro = () => { FX.click(); setIntroRead(true); setDialog({ lines: introLines }); };
   const openHint = () => { FX.click(); setHintOpen(true); };
 
+  const L = world.L;
   const note = L.toScreen(NOTE);
 
+  // Während der Kamerafahrt nur die (leere) Hülle — alles DOM ist busy.
   return (
-    <View style={styles.root}>
-      {/* Verlängert den Raum in die Letterbox-Ränder → keine schwarzen Balken. */}
-      <SceneBackdrop source={bgSource} darken={0.55} />
-      <Canvas style={{ flex: 1 }}>
-        <Group transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
-          {bg && <SkImage image={bg} x={0} y={0} width={SCENE_W} height={SCENE_H} fit="fill" sampling={NEAREST} />}
-          {renderScene && renderScene(L)}
-
-          {emergencyLight && (
-            <Group>
-              <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.52)" />
-              <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
-                <RadialGradient
-                  c={{ x: LAMP.x, y: LAMP.y }}
-                  r={300}
-                  colors={['#e82010', '#00000000']}
-                />
-              </Rect>
-            </Group>
-          )}
-        </Group>
-      </Canvas>
-
-      {/* CRT-Scanlines + Vignette über die ganze Bühne */}
-      <CRTOverlay L={L} intensity={emergencyLight ? 1 : 0.85} />
+    <View style={styles.root} pointerEvents="box-none">
+      {!world.traveling && (
+        <View style={styles.topbar} pointerEvents="box-none">
+          <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={onBack}>
+            <Text style={styles.tbTxt}>◀ TERMINAL</Text>
+          </Pressable>
+          <Text style={[styles.title, { color: room.accent }]}>{room.title.toUpperCase()}</Text>
+          <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={openHint}>
+            <Text style={styles.tbTxt}>HINWEIS ?</Text>
+          </Pressable>
+        </View>
+      )}
 
       {renderOverlay && renderOverlay(L, { busy })}
 
-      {/* I4: In-world Lab-Notiz (Klemmbrett) als Intro-Einstieg (kein Auto-Vollbild) */}
+      {/* In-world Lab-Notiz (Klemmbrett) als Intro-Einstieg */}
       {introLines && !busy && (
         <ClipboardNote rect={note} label="LAB-NOTIZ" glow={noteGlow} onPress={openIntro} />
       )}
-
-      <View style={styles.topbar} pointerEvents="box-none">
-        <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={onBack}>
-          <Text style={styles.tbTxt}>◀ TERMINAL</Text>
-        </Pressable>
-        <Text style={[styles.title, { color: room.accent }]}>{room.title.toUpperCase()}</Text>
-        <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={openHint}>
-          <Text style={styles.tbTxt}>HINWEIS ?</Text>
-        </Pressable>
-      </View>
 
       {dialog && (
         <PixelDialog speaker="LAB-NOTIZ" lines={dialog.lines} onClose={() => setDialog(null)} />
@@ -126,33 +97,34 @@ export default function SceneShell({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0d0f17' },
+  root: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 },
   topbar: {
     position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row',
     justifyContent: 'space-between', alignItems: 'center', padding: 10,
   },
-  tbBtn: { borderWidth: 2, borderColor: '#6fd3dd', backgroundColor: 'rgba(13,15,23,0.85)', paddingHorizontal: 10, paddingVertical: 6 },
+  tbBtn: {
+    borderWidth: 1.5, borderColor: '#6fd3dd', backgroundColor: 'rgba(10,14,22,0.82)',
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 6,
+  },
   tbPressed: { backgroundColor: 'rgba(111,211,221,0.18)' },
   tbTxt: { color: '#6fd3dd', fontFamily: 'monospace', fontSize: 11, fontWeight: 'bold' },
-  title: { fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', letterSpacing: 1, textShadowColor: '#000', textShadowRadius: 4 },
-  // In-world torn note
-  note: {
-    position: 'absolute', backgroundColor: '#ece3c8',
-    borderWidth: 1, borderColor: '#c8bd9a',
-    alignItems: 'center', justifyContent: 'center',
-    transform: [{ rotate: '-3deg' }],
-    shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 3, shadowOffset: { width: 1, height: 2 },
+  title: {
+    fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold', letterSpacing: 2,
+    textShadowColor: '#000', textShadowRadius: 6,
   },
-  noteGlow: { borderColor: '#f0b23a', shadowColor: '#f0b23a', shadowOpacity: 0.9, shadowRadius: 6 },
-  notePin: { position: 'absolute', top: -4, alignSelf: 'center', width: 7, height: 7, borderRadius: 4, backgroundColor: '#d4302a', borderWidth: 1, borderColor: '#8c1410' },
-  noteHdr: { color: '#5a4f2a', fontFamily: 'monospace', fontSize: 9, fontWeight: 'bold', letterSpacing: 1 },
-  noteHint: { color: '#8a7a4a', fontFamily: 'monospace', fontSize: 7, letterSpacing: 1, marginTop: 1 },
   solvedWrap: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(5,7,12,0.72)' },
-  solvedBox: { backgroundColor: '#0d0f17', borderWidth: 4, padding: 22, alignItems: 'center', maxWidth: 460 },
+  solvedBox: {
+    backgroundColor: 'rgba(13,15,23,0.97)', borderWidth: 2, borderRadius: 10,
+    padding: 22, alignItems: 'center', maxWidth: 460,
+    shadowColor: '#000', shadowOpacity: 0.8, shadowRadius: 24,
+  },
   solvedKick: { color: '#6fe87a', fontFamily: 'monospace', fontSize: 12, letterSpacing: 3, fontWeight: 'bold' },
   solvedTxt: { color: '#aab6c6', fontFamily: 'monospace', fontSize: 12, textAlign: 'center', marginTop: 8, lineHeight: 18 },
   codeLabel: { color: '#718096', fontFamily: 'monospace', fontSize: 9, letterSpacing: 2, marginTop: 16 },
-  code: { fontFamily: 'monospace', fontSize: 44, fontWeight: 'bold', letterSpacing: 8, marginTop: 2 },
-  goBtn: { marginTop: 18, borderWidth: 2, paddingHorizontal: 16, paddingVertical: 10 },
+  code: {
+    fontFamily: 'monospace', fontSize: 44, fontWeight: 'bold', letterSpacing: 8, marginTop: 2,
+    textShadowColor: 'rgba(255,255,255,0.25)', textShadowRadius: 12,
+  },
+  goBtn: { marginTop: 18, borderWidth: 2, borderRadius: 6, paddingHorizontal: 16, paddingVertical: 10 },
   goTxt: { fontFamily: 'monospace', fontSize: 12, fontWeight: 'bold' },
 });

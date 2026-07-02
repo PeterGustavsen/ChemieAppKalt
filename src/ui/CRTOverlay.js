@@ -6,14 +6,15 @@
  *   <CRTOverlay L={L} />                       // L = useStageLayout()
  *   <CRTOverlay L={L} intensity={0.6} />       // schwächer
  *
- * Genutzt von SceneShell (Konstantin) und Scene1Hub (Ruben).
+ * Genutzt von WorldLab über der Welt-Canvas.
  */
 import React, { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import { Canvas, Group, Rect, RadialGradient } from '@shopify/react-native-skia';
 import { SCENE_W, SCENE_H } from '../config/game';
 
-const STEP = 3;     // Szenen-px zwischen den Scanlines
+// HD-Look: feinere, dezentere Scanlines als früher (waren STEP 3 / 0.16).
+const STEP = 4;     // Szenen-px zwischen den Scanlines
 const LINE = 1;     // Linienhöhe in Szenen-px
 
 export default function CRTOverlay({ L, intensity = 1 }) {
@@ -27,8 +28,8 @@ export default function CRTOverlay({ L, intensity = 1 }) {
     return ys;
   }, []);
 
-  const lineColor = `rgba(0,0,0,${0.16 * intensity})`;
-  const edgeColor = `rgba(0,0,0,${0.55 * intensity})`;
+  const lineColor = `rgba(0,0,0,${0.09 * intensity})`;
+  const edgeColor = `rgba(0,0,0,${0.48 * intensity})`;
 
   return (
     <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">

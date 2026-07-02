@@ -126,7 +126,6 @@ export default function Scene3Redox({ room, onBack, onReveal, initiallySolved, e
   return (
     <SceneShell
       room={room}
-      bgSource={require('../../assets/scenes/scene_03_opferanode.png')}
       introLines={P.intro}
       hintLines={P.hint}
       solved={solved}
