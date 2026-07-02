@@ -6,7 +6,7 @@
  *   <CRTOverlay L={L} />                       // L = useStageLayout()
  *   <CRTOverlay L={L} intensity={0.6} />       // schwächer
  *
- * Genutzt von SceneShell (Konstantin) und Scene1Hub (Ruben).
+ * Genutzt von WorldLab über der Welt-Canvas.
  */
 import React, { useMemo } from 'react';
 import { StyleSheet } from 'react-native';

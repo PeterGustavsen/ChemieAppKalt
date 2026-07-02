@@ -1,114 +1,74 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
-import { Group, Rect, RadialGradient } from '@shopify/react-native-skia';
-import LiveCanvas from '../engine/LiveCanvas';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 
-import { useStageLayout } from '../engine/layout';
-import { useAmbient } from '../engine/useAmbient';
+import { useWorld } from '../engine/WorldContext';
 import { useSpriteFrame } from '../engine/useSprite';
 import PixelDialog from '../ui/PixelDialog';
-import CRTOverlay from '../ui/CRTOverlay';
 import ClipboardNote from '../ui/ClipboardNote';
-import BackdropHD from '../ui/BackdropHD';
-import RoomArtHD, { ROOM_HORIZON } from '../art/RoomArtHD';
-import { SCENE_W, SCENE_H } from '../config/game';
 import { FX } from '../fx/feedback';
 
-const LAMP = { x: SCENE_W / 2, y: 8 };
+/*
+ * SceneShell — Rahmen der 6 Rätsel-Stationen. Zeichnet KEINE eigene Canvas
+ * mehr: das Spiel ist EINE durchgehende Laborhalle (WorldLab), und die Kamera
+ * fährt zur Station. SceneShell publiziert den Skia-Rätsel-Layer über den
+ * WorldContext in die Welt-Canvas und rendert selbst nur noch die DOM-Teile:
+ * Topbar, Lab-Notiz, Overlays der Szene, Hinweis/Intro-Dialoge, Code-Panel.
+ * Die Rätsel-Szenen selbst bleiben unverändert.
+ */
+
 // Über das gemalte Klemmbrett auf der Werkbank (Mitte unten) gelegt.
 const NOTE = { x: 286, y: 222, w: 68, h: 36 };
 
 export default function SceneShell({
   room, introLines, hintLines, solved, solvedLines,
-  onBack, renderScene, renderOverlay, emergencyLight, danger,
+  onBack, renderScene, renderOverlay,
 }) {
-  const L = useStageLayout();
-  const t = useAmbient(30);
-  // I4: Intro NICHT mehr automatisch als Vollbild-Box — antippbare Notiz im Bild.
+  const world = useWorld();
   const [dialog, setDialog] = useState(null);
   const [hintOpen, setHintOpen] = useState(false);
   const [introRead, setIntroRead] = useState(false);
 
-  const busy = !!dialog || hintOpen || solved;
-  const pulse = useSpriteFrame(40, 18);             // Aufmerksamkeit auf die Notiz
-  const noteGlow = !introRead && (pulse % 40) < 20;
-
-  // „Eintreten“: die ganze Bühne setzt sich weich (Zoom 1.12 → 1, Einblenden).
-  // Der Transform liegt auf dem gemeinsamen Wrapper von Canvas UND Overlays,
-  // dadurch bleibt alles pixelgenau ausgerichtet.
-  const settle = useRef(new Animated.Value(0)).current;
+  // Rätsel-Layer in die Welt-Canvas publizieren (Ref-basiert, jede Renderrunde
+  // aktuell — die Welt liest ihn bei ihrem nächsten Frame).
+  const renderSceneRef = useRef(renderScene);
+  renderSceneRef.current = renderScene;
   useEffect(() => {
-    Animated.timing(settle, { toValue: 1, duration: 520, useNativeDriver: true }).start();
-  }, []);
+    world.setLayer((L) => (renderSceneRef.current ? renderSceneRef.current(L) : null));
+    return () => world.setLayer(null);
+  }, [world]);
 
-  // Alarm-Puls aus der Ambient-Uhr (statt eigenem Interval).
-  const period = danger ? 0.7 : 2.0;
-  const lo = danger ? 0.40 : 0.28;
-  const hi = danger ? 0.75 : 0.55;
-  const glow = emergencyLight
-    ? lo + (hi - lo) * ((Math.sin((t / period) * Math.PI * 2) + 1) / 2)
-    : 0;
+  const busy = !!dialog || hintOpen || solved || world.traveling;
+  // Aufmerksamkeits-Puls der Notiz: 1×/s Toggle statt 18-fps-Ticker (DOM-Ruhe)
+  const pulse = useSpriteFrame(2, 0.9);
+  const noteGlow = !introRead && pulse === 0;
 
   const openIntro = () => { FX.click(); setIntroRead(true); setDialog({ lines: introLines }); };
   const openHint = () => { FX.click(); setHintOpen(true); };
 
+  const L = world.L;
   const note = L.toScreen(NOTE);
-  const horizon = ROOM_HORIZON[room.scene] || 258;
 
+  // Während der Kamerafahrt nur die (leere) Hülle — alles DOM ist busy.
   return (
-    <View style={styles.root}>
-      {/* Verlängert den Raum in die Letterbox-Ränder → keine schwarzen Balken. */}
-      <BackdropHD horizon={horizon} accent={room.accent} />
+    <View style={styles.root} pointerEvents="box-none">
+      {!world.traveling && (
+        <View style={styles.topbar} pointerEvents="box-none">
+          <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={onBack}>
+            <Text style={styles.tbTxt}>◀ TERMINAL</Text>
+          </Pressable>
+          <Text style={[styles.title, { color: room.accent }]}>{room.title.toUpperCase()}</Text>
+          <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={openHint}>
+            <Text style={styles.tbTxt}>HINWEIS ?</Text>
+          </Pressable>
+        </View>
+      )}
 
-      <Animated.View
-        style={[styles.stage, {
-          opacity: settle.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0.25, 1, 1] }),
-          transform: [{ scale: settle.interpolate({ inputRange: [0, 1], outputRange: [1.12, 1] }) }],
-        }]}
-      >
-        <LiveCanvas style={{ flex: 1 }}>
-          <Group clip={{ x: L.offsetX, y: L.offsetY, width: L.stageW, height: L.stageH }}>
-            <Group transform={[{ translateX: L.offsetX }, { translateY: L.offsetY }, { scale: L.scale }]}>
-              <RoomArtHD sceneId={room.scene} accent={room.accent} t={t}
-                emergencyLight={emergencyLight} danger={danger} />
-              {renderScene && renderScene(L)}
+      {renderOverlay && renderOverlay(L, { busy })}
 
-              {emergencyLight && (
-                <Group>
-                  <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} color="rgba(0,0,0,0.52)" />
-                  <Rect x={0} y={0} width={SCENE_W} height={SCENE_H} opacity={glow}>
-                    <RadialGradient
-                      c={{ x: LAMP.x, y: LAMP.y }}
-                      r={300}
-                      colors={['#e82010', '#00000000']}
-                    />
-                  </Rect>
-                </Group>
-              )}
-            </Group>
-          </Group>
-        </LiveCanvas>
-
-        {/* CRT-Scanlines + Vignette über die ganze Bühne */}
-        <CRTOverlay L={L} intensity={emergencyLight ? 1 : 0.85} />
-
-        {renderOverlay && renderOverlay(L, { busy })}
-
-        {/* I4: In-world Lab-Notiz (Klemmbrett) als Intro-Einstieg (kein Auto-Vollbild) */}
-        {introLines && !busy && (
-          <ClipboardNote rect={note} label="LAB-NOTIZ" glow={noteGlow} onPress={openIntro} />
-        )}
-      </Animated.View>
-
-      <View style={styles.topbar} pointerEvents="box-none">
-        <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={onBack}>
-          <Text style={styles.tbTxt}>◀ TERMINAL</Text>
-        </Pressable>
-        <Text style={[styles.title, { color: room.accent }]}>{room.title.toUpperCase()}</Text>
-        <Pressable style={({ pressed }) => [styles.tbBtn, pressed && styles.tbPressed]} onPress={openHint}>
-          <Text style={styles.tbTxt}>HINWEIS ?</Text>
-        </Pressable>
-      </View>
+      {/* In-world Lab-Notiz (Klemmbrett) als Intro-Einstieg */}
+      {introLines && !busy && (
+        <ClipboardNote rect={note} label="LAB-NOTIZ" glow={noteGlow} onPress={openIntro} />
+      )}
 
       {dialog && (
         <PixelDialog speaker="LAB-NOTIZ" lines={dialog.lines} onClose={() => setDialog(null)} />
@@ -137,8 +97,7 @@ export default function SceneShell({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0d0f17' },
-  stage: { flex: 1 },
+  root: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 },
   topbar: {
     position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row',
     justifyContent: 'space-between', alignItems: 'center', padding: 10,

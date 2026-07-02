@@ -5,25 +5,11 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-import SceneStart from './src/scenes/SceneStart';
-import Scene1Hub from './src/scenes/Scene1Hub';
-import Scene2Buffer from './src/scenes/Scene2Buffer';
-import Scene3Redox from './src/scenes/Scene3Redox';
-import Scene4Galvanic from './src/scenes/Scene4Galvanic';
-import Scene5Ester from './src/scenes/Scene5Ester';
-import Scene6Electrolysis from './src/scenes/Scene6Electrolysis';
-import Scene7Equilibrium from './src/scenes/Scene7Equilibrium';
-import SceneWin from './src/scenes/SceneWin';
-import SceneFail from './src/scenes/SceneFail';
+import WorldLab from './src/scenes/WorldLab';
 import RadioCall from './src/ui/RadioCall';
 import ErrorBoundary from './src/fx/ErrorBoundary';
 import { FX } from './src/fx/feedback';
 import { ROOMS, TIMER_SECONDS, RADIO_CALLS } from './src/config/game';
-
-const ROOM_COMPONENTS = {
-  2: Scene2Buffer, 3: Scene3Redox, 4: Scene4Galvanic,
-  5: Scene5Ester, 6: Scene6Electrolysis, 7: Scene7Equilibrium,
-};
 
 const SAVE_KEY = '@chemie/save';
 
@@ -35,7 +21,6 @@ try {
 
 export default function App() {
   const [screen, setScreen] = useState('start');
-  const [activeRoom, setActiveRoom] = useState(null);
   const [solvedIds, setSolvedIds] = useState([]);
   const [revealedIds, setRevealedIds] = useState([]);
 
@@ -251,8 +236,6 @@ export default function App() {
     return { ok: false, message: 'ZUGANG VERWEIGERT' };
   }, [target]);
 
-  const onEnterRoom = useCallback((room) => { setActiveRoom(room); setScreen('room'); }, []);
-  const onBack = useCallback(() => { setScreen('scene1'); setActiveRoom(null); }, []);
   const onStart = useCallback(() => setScreen('scene1'), []);
   const onReveal = useCallback((id) => setRevealedIds((r) => (r.includes(id) ? r : [...r, id])), []);
 
@@ -286,7 +269,6 @@ export default function App() {
     setTimeLeft(durationRef.current);
     setGameState('playing');
     setScreen('start');
-    setActiveRoom(null);
     setRadioQueue([]);
     setGameKey((k) => k + 1);
     flickerAnim.setValue(0);
@@ -300,7 +282,6 @@ export default function App() {
   const { width, height } = useWindowDimensions();
   const isPortrait = height > width;
 
-  const RoomComp = activeRoom ? ROOM_COMPONENTS[activeRoom.scene] : null;
   const danger = introDone && timeLeft <= 120;
   // Emergency light activates as soon as alarm triggers (not only after dismissal)
   const emergencyLight = alarmPending || introDone;
@@ -317,68 +298,30 @@ export default function App() {
         <Text style={styles.rotateSub}>Das Spiel läuft nur im Querformat</Text>
       </View>
     );
-  } else if (gameState === 'win') {
-    content = (
-      <View style={styles.container}>
-        <StatusBar hidden />
-        <SceneWin elapsed={elapsed} onRestart={onRestart} />
-      </View>
-    );
-  } else if (gameState === 'fail') {
-    content = (
-      <View style={styles.container}>
-        <StatusBar hidden />
-        <SceneFail solvedIds={solvedIds} onRestart={onRestart} />
-      </View>
-    );
-  } else if (screen === 'start') {
-    content = (
-      <View style={styles.container}>
-        <StatusBar hidden />
-        <SceneStart onStart={onStart} />
-      </View>
-    );
   } else {
+    const mode = gameState === 'win' ? 'win'
+      : gameState === 'fail' ? 'fail'
+        : screen === 'start' ? 'start' : 'playing';
     content = (
       <Animated.View style={[styles.container, { transform: [{ translateX: shakeAnim }] }]}>
         <StatusBar hidden />
-        {screen === 'scene1' && (
-          <Scene1Hub
-            key={gameKey}
-            solvedIds={solvedIds}
-            onSubmitCode={onSubmitCode}
-            onEnterRoom={onEnterRoom}
-            introDone={introDone}
-            alarmPending={alarmPending}
-            onIntroDone={onIntroDone}
-            timeLeft={introDone ? timeLeft : null}
-            danger={danger}
-            emergencyLight={emergencyLight}
-          />
-        )}
-        {screen === 'room' && (
-          RoomComp ? (
-            <RoomComp
-              room={activeRoom}
-              onBack={onBack}
-              onReveal={onReveal}
-              initiallySolved={revealedIds.includes(activeRoom.id)}
-              emergencyLight={emergencyLight}
-              danger={danger}
-            />
-          ) : (
-            // Dead-end guard: unknown scene id → don't render a blank screen.
-            <View style={styles.deadEnd}>
-              <Text style={styles.deadEndTitle}>Kammer nicht verfügbar</Text>
-              <Text style={styles.deadEndSub}>
-                Diese Station ist noch nicht eingebaut.
-              </Text>
-              <Pressable style={styles.deadEndBtn} onPress={onBack}>
-                <Text style={styles.deadEndBtnTxt}>◀ ZURÜCK</Text>
-              </Pressable>
-            </View>
-          )
-        )}
+        <WorldLab
+          key={gameKey}
+          mode={mode}
+          solvedIds={solvedIds}
+          revealedIds={revealedIds}
+          onSubmitCode={onSubmitCode}
+          onReveal={onReveal}
+          introDone={introDone}
+          alarmPending={alarmPending}
+          onIntroDone={onIntroDone}
+          timeLeft={introDone ? timeLeft : null}
+          danger={danger}
+          emergencyLight={emergencyLight}
+          onStart={onStart}
+          onRestart={onRestart}
+          elapsed={elapsed}
+        />
 
         {/* Molar radio calls — FIFO queue, top-left speaker widget */}
         {radioQueue.length > 0 && (
@@ -411,23 +354,5 @@ const styles = StyleSheet.create({
   flicker: {
     position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
     backgroundColor: '#000',
-  },
-  deadEnd: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 24,
-  },
-  deadEndTitle: {
-    color: '#e0b44c', fontFamily: 'monospace', fontSize: 18,
-    fontWeight: '900', letterSpacing: 1,
-  },
-  deadEndSub: {
-    color: '#dbe4f0', fontFamily: 'monospace', fontSize: 13, textAlign: 'center',
-  },
-  deadEndBtn: {
-    marginTop: 12, borderWidth: 2, borderColor: '#6fd3dd',
-    borderRadius: 6, paddingVertical: 10, paddingHorizontal: 20,
-  },
-  deadEndBtnTxt: {
-    color: '#6fd3dd', fontFamily: 'monospace', fontSize: 14,
-    fontWeight: 'bold', letterSpacing: 1,
   },
 });
